@@ -1,0 +1,2 @@
+ALTER TABLE `User` ADD COLUMN `loginId` VARCHAR(191) NULL, ADD COLUMN `passwordHash` VARCHAR(191) NULL, ADD COLUMN `adminSessionVersion` INTEGER NOT NULL DEFAULT 0;
+CREATE UNIQUE INDEX `User_loginId_key` ON `User`(`loginId`);

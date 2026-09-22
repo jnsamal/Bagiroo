@@ -1,0 +1,145 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const path = require('node:path');
+const crypto = require('node:crypto');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const prisma = require('../src/config/prismaClient');
+const app = require('../src/app');
+const { createCsrfContext } = require('./csrf-helper');
+
+test('admin authentication, website saves, content editing and password revocation', async () => {
+  const server = app.listen(0, '127.0.0.1');
+  await new Promise(resolve => server.once('listening', resolve));
+  const base = `http://127.0.0.1:${server.address().port}/api/v1`;
+  const csrf = await createCsrfContext(base);
+  const suffix = crypto.randomUUID();
+  const password = crypto.randomBytes(18).toString('base64url');
+  const admin = await prisma.user.create({ data: { phone: '+91' + Date.now().toString().slice(-10), loginId: 'test-' + suffix, passwordHash: await bcrypt.hash(password, 12), role: 'ADMIN' } });
+  const originalConfig = await prisma.siteSetting.findUnique({ where: { key: 'website_config' } });
+  let cookie = '';
+  const created = [];
+  async function request(endpoint, method = 'GET', body, customCookie = cookie) {
+    const response = await fetch(base + endpoint, { method, headers: csrf.headers({ 'Content-Type': 'application/json' }, customCookie), ...(body ? { body: JSON.stringify(body) } : {}) });
+    return { status: response.status, headers: response.headers, body: await response.json() };
+  }
+  try {
+    assert.equal((await request('/admin/products')).status, 401);
+    const customerToken = jwt.sign({ id: admin.id, role: 'ADMIN' }, process.env.JWT_SECRET);
+    assert.equal((await request('/admin/products', 'GET', null, `bagiroo_session=${customerToken}`)).status, 401);
+    assert.equal((await request('/admin/login', 'POST', { loginId: admin.loginId, password: 'wrong-password' })).status, 401);
+    let login = await request('/admin/login', 'POST', { loginId: admin.loginId, password });
+    assert.equal(login.status, 200);
+    assert(login.headers.get('set-cookie').includes('HttpOnly'));
+    assert.match(login.headers.get('set-cookie'), /SameSite=Lax/i);
+    assert(!JSON.stringify(login.body).includes('passwordHash'));
+    cookie = login.headers.get('set-cookie').split(';')[0];
+    for (const section of ['categories', 'collections', 'inventory', 'videos', 'instagram', 'reviews', 'testimonials', 'announcements', 'coupons', 'contacts']) assert.equal((await request('/admin/content/' + section)).status, 200);
+    assert.equal((await request('/admin/website', 'PATCH', { heroButtonUrl: 'javascript:alert(1)' })).status, 400);
+    assert.equal((await request('/admin/website', 'PATCH', { heroTitle: 'Integration test heading', background: '#eeeeee', shippingMinor: 5000, taxPercent: 18, taxIncluded: false })).status, 200);
+    const publicSettings = await request('/settings/public');
+    assert.equal(publicSettings.body.data.website.heroTitle, 'Integration test heading');
+    const { computeTotals } = require('../src/services/pricing.service');
+    const totals = await computeTotals({ items: [{ product: { priceMinor: 10000 }, quantity: 1 }] });
+    assert.equal(totals.shippingMinor, 5000);
+    assert.equal(totals.taxMinor, 1800);
+    assert.equal(totals.totalMinor, 16800);
+    const category = await request('/admin/content/categories', 'POST', { name: 'QA category', slug: 'qa-' + suffix, description: '', imageUrl: '', sortOrder: 0, isVisible: true });
+    assert.equal(category.status, 200);
+    created.push(['category', category.body.data.id]);
+    assert.equal((await request('/admin/content/categories/' + category.body.data.id, 'PATCH', { name: 'Updated category', slug: 'qa-' + suffix, description: '', imageUrl: '', sortOrder: 1, isVisible: false })).status, 200);
+    const products = await prisma.product.findMany({ where: { deletedAt: null }, take: 1 });
+    const publicList = await request('/products?perPage=4');
+    assert.equal(publicList.status, 200);
+    assert(Array.isArray(publicList.body.data.data));
+    assert.equal(typeof publicList.body.data.meta.total, 'number');
+    for (const item of publicList.body.data.data) {
+      const detail = await request('/products/' + item.slug);
+      assert.equal(detail.status, 200);
+      assert(Array.isArray(detail.body.data.media));
+      const history = await request('/products?slugs=' + encodeURIComponent(item.slug));
+      assert.equal(history.body.data.data[0].slug, item.slug);
+    }
+    const collection = await request('/admin/content/collections', 'POST', { name: 'QA collection', slug: 'qa-' + suffix, description: '', imageUrl: '', sortOrder: 0, isFeatured: false, productIds: products.map(product => product.id) });
+    assert.equal(collection.status, 200);
+    created.push(['collection', collection.body.data.id]);
+    const collectionData = await prisma.productCollection.findMany({ where: { collectionId: collection.body.data.id } });
+    assert.equal(collectionData.length, products.length);
+    const inventory = await prisma.inventory.findFirst();
+    if (inventory) assert.equal((await request('/admin/content/inventory/' + inventory.id, 'PATCH', { quantityAvailable: -1 })).status, 400);
+    assert.equal((await request('/contact', 'POST', { name: 'A', email: 'invalid', subject: 'Other', message: 'short' })).status, 400);
+    const contact = await request('/contact', 'POST', { name: 'QA Customer', email: `contact-${suffix}@example.com`, orderNumber: 'QA-ORDER', subject: 'Order help', message: 'Please help me check the status of this test order.' });
+    assert.equal(contact.status, 201);
+    created.push(['contactMessage', contact.body.data.id]);
+    assert.equal((await request('/admin/content/contacts/' + contact.body.data.id, 'PATCH', { status: 'RESOLVED' })).status, 200);
+    assert.equal((await prisma.contactMessage.findUnique({ where: { id: contact.body.data.id } })).status, 'RESOLVED');
+    const visibleByDefault = await request('/admin/products', 'POST', { title: 'QA visible product ' + suffix, sku: 'QA-visible-' + suffix, slug: 'qa-visible-product-' + suffix, priceMinor: 10000 });
+    assert.equal(visibleByDefault.status, 201);
+    assert.equal(visibleByDefault.body.data.isPublished, true);
+    created.push(['product', visibleByDefault.body.data.id]);
+    assert.equal((await request('/products/' + visibleByDefault.body.data.slug)).status, 200);
+    const removable = await request('/admin/products', 'POST', { title: 'QA removable product ' + suffix, sku: 'QA-remove-' + suffix, slug: 'qa-removable-product-' + suffix, priceMinor: 10000 });
+    assert.equal(removable.status, 201);
+    const removed = await request('/admin/products/' + removable.body.data.id, 'DELETE');
+    assert.equal(removed.status, 200);
+    assert.equal(removed.body.data.permanentlyDeleted, true);
+    assert.equal(await prisma.product.findUnique({ where: { id: removable.body.data.id } }), null);
+    assert.equal((await request('/products/' + removable.body.data.slug)).status, 404);
+    const product = await request('/admin/products', 'POST', { title: 'QA product ' + suffix, sku: 'QA-' + suffix, slug: 'qa-product-' + suffix, priceMinor: 10000, isPublished: false });
+    assert.equal(product.status, 201);
+    const productId = product.body.data.id;
+    created.push(['product', productId]);
+    assert(await prisma.inventory.findUnique({ where: { productId } }));
+    const searched = await request('/admin/products?q=' + encodeURIComponent('QA-' + suffix) + '&status=draft&perPage=1');
+    assert.equal(searched.body.data.meta.total, 1);
+    assert.equal(searched.body.data.data[0].id, productId);
+    assert.equal((await request('/admin/products/' + productId, 'PATCH', { isPublished: true, isBestSeller: true, isNewArrival: true })).status, 200);
+    const published = await request('/admin/products?q=' + encodeURIComponent('QA-' + suffix) + '&status=published');
+    assert.equal(published.body.data.data[0].isBestSeller, true);
+    assert.equal((await request('/admin/products/' + productId + '/archive', 'POST', {})).status, 200);
+    const archived = await request('/admin/products?q=' + encodeURIComponent('QA-' + suffix) + '&status=archived');
+    assert.equal(archived.body.data.meta.total, 1);
+    assert.equal((await request('/admin/products/' + productId + '/restore', 'POST', {})).status, 200);
+    const restored = await prisma.product.findUnique({ where: { id: productId } });
+    assert.equal(restored.deletedAt, null);
+    assert.equal(restored.isPublished, false);
+    const colour = await request('/admin/products/' + productId + '/variations', 'POST', { sku: 'QA-colour-' + suffix, colorName: 'Test colour' });
+    assert.equal(colour.status, 201);
+    const variationId = colour.body.data.id;
+    const firstImage = await prisma.productMedia.create({ data: { productId, variationId, url: '/uploads/test-first.png', sortOrder: 0 } });
+    const defaultImage = await prisma.productMedia.create({ data: { productId, variationId, url: '/uploads/test-default.png', sortOrder: 1 } });
+    const unassigned = await prisma.productMedia.create({ data: { productId, url: '/uploads/test-unassigned.png' } });
+    const variationEndpoint = '/admin/products/' + productId + '/variations/' + variationId;
+    assert.equal((await request(variationEndpoint, 'PATCH', { defaultImageMediaId: unassigned.id })).status, 400);
+    assert.equal((await request(variationEndpoint, 'PATCH', { defaultImageMediaId: defaultImage.id })).status, 200);
+    assert.equal((await prisma.productVariation.findUnique({ where: { id: variationId } })).imageUrl, defaultImage.url);
+    assert.equal((await request(variationEndpoint, 'PATCH', { defaultImageMediaId: '' })).status, 200);
+    assert.equal((await prisma.productVariation.findUnique({ where: { id: variationId } })).imageUrl, '');
+    assert.equal((await request('/admin/products?page=-1')).status, 400);
+    assert.equal((await request('/admin/password', 'PATCH', { currentPassword: 'wrong-password', password: 'replacement-password-123' })).status, 400);
+    assert.equal((await request('/admin/password', 'PATCH', { currentPassword: password, password: 'replacement-password-123' })).status, 200);
+    assert.equal((await request('/admin/me')).status, 401);
+    login = await request('/admin/login', 'POST', { loginId: admin.loginId, password: 'replacement-password-123' });
+    assert.equal(login.status, 200);
+    cookie = login.headers.get('set-cookie').split(';')[0];
+    assert.equal((await request('/admin/logout', 'POST', {})).status, 200);
+  } finally {
+    for (const [model, id] of created.reverse()) {
+      if (model === 'product') {
+        const variations = await prisma.productVariation.findMany({ where: { productId: id }, select: { id: true } });
+        await prisma.productMedia.deleteMany({ where: { productId: id } });
+        await prisma.inventory.deleteMany({ where: { OR: [{ productId: id }, { variationId: { in: variations.map(variation => variation.id) } }] } });
+        await prisma.productVariation.deleteMany({ where: { productId: id } });
+      }
+      if (model === 'collection') await prisma.productCollection.deleteMany({ where: { collectionId: id } });
+      await prisma[model].delete({ where: { id } });
+    }
+    if (originalConfig) await prisma.siteSetting.update({ where: { key: 'website_config' }, data: { value: originalConfig.value } });
+    else await prisma.siteSetting.deleteMany({ where: { key: 'website_config' } });
+    await prisma.auditLog.deleteMany({ where: { userId: admin.id } });
+    await prisma.user.delete({ where: { id: admin.id } });
+    await new Promise(resolve => server.close(resolve));
+    await prisma.$disconnect();
+  }
+});

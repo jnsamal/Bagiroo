@@ -1,0 +1,594 @@
+// Bagiroo&Co. — Prisma schema (Phase 2 foundation)
+// Money: stored as integer minor units (paise) — never floating point.
+// Timestamps: UTC (MySQL DATETIME), display-timezone handling happens in the client.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Auth — OTP mobile-number flow (per decision: no email/password, no modal)
+// ---------------------------------------------------------------------------
+
+model User {
+  id          String   @id @default(cuid())
+  phone       String   @unique // E.164, e.g. +919999999999
+  loginId     String?  @unique
+  passwordHash String?
+  adminSessionVersion Int @default(0)
+  name        String?
+  email       String?  @unique // optional, collected later in account details
+  role        Role     @default(CUSTOMER)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime? // soft delete
+
+  addresses        UserAddress[]
+  otpTokens        OtpToken[]
+  cart             Cart?
+  wishlist         Wishlist?
+  orders           Order[]
+  returns          Return[]
+  auditLogs        AuditLog[]
+
+  @@index([phone])
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+  STAFF
+}
+
+model OtpToken {
+  id         String   @id @default(cuid())
+  phone      String
+  codeHash   String // bcrypt hash of the OTP — never store plaintext
+  purpose    OtpPurpose @default(LOGIN)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  attempts   Int      @default(0)
+  user       User?    @relation(fields: [userId], references: [id])
+  userId     String?
+  createdAt  DateTime @default(now())
+
+  @@index([phone, purpose])
+}
+
+// Persistent authentication failure counters. The lockKey is a SHA-256 hash
+// so account identifiers and IP addresses are not stored in plaintext.
+model AuthLockout {
+  id           String    @id @default(cuid())
+  lockKey      String    @unique
+  failureCount Int       @default(0)
+  lockedUntil  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([lockedUntil])
+}
+
+enum OtpPurpose {
+  LOGIN
+  REGISTER
+}
+
+model UserAddress {
+  id          String   @id @default(cuid())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  label       String? // "Home", "Work", etc.
+  fullName    String
+  phone       String
+  line1       String
+  line2       String?
+  city        String
+  state       String
+  postalCode  String
+  country     String   @default("IN")
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Catalog
+// ---------------------------------------------------------------------------
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  imageUrl    String?
+  sortOrder   Int      @default(0)
+  isVisible   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products    ProductCategory[]
+
+  @@index([slug])
+}
+
+model Collection {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  imageUrl    String?
+  isFeatured  Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  isPlaceholder Boolean @default(true) // true until real content is assigned
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products    ProductCollection[]
+
+  @@index([slug])
+}
+
+model Tag {
+  id       String @id @default(cuid())
+  name     String @unique
+  products ProductTag[]
+}
+
+model Product {
+  id              String   @id @default(cuid())
+  title           String
+  slug            String   @unique
+  shortDescription String? @db.Text
+  description     String?  @db.Text
+  sku             String   @unique
+  priceMinor      Int?     // nullable on purpose — flags products like
+                            // "Wave Scalloped Crossbody Bag" that currently
+                            // have no price configured on the live site
+  compareAtMinor  Int?     // MRP / strike-through price
+  currency        String   @default("INR")
+  material        String?
+  weightGrams     Int?
+  dimensions      String?  // e.g. "32cm x 28cm x 12cm"
+  features        Json?    // array of feature strings
+  isPublished     Boolean  @default(false)
+  isBestSeller    Boolean  @default(false)
+  isNewArrival    Boolean  @default(false)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  categories      ProductCategory[]
+  collections     ProductCollection[]
+  tags            ProductTag[]
+  variations      ProductVariation[]
+  media           ProductMedia[]
+  videos          ProductVideo[]
+  inventory       Inventory?
+  cartItems       CartItem[]
+  wishlistItems   WishlistItem[]
+  orderItems      OrderItem[]
+  reviews         Review[]
+
+  @@index([slug])
+  @@index([sku])
+}
+
+model ProductCategory {
+  product    Product  @relation(fields: [productId], references: [id])
+  productId  String
+  category   Category @relation(fields: [categoryId], references: [id])
+  categoryId String
+
+  @@id([productId, categoryId])
+}
+
+model ProductCollection {
+  product      Product    @relation(fields: [productId], references: [id])
+  productId    String
+  collection   Collection @relation(fields: [collectionId], references: [id])
+  collectionId String
+
+  @@id([productId, collectionId])
+}
+
+model ProductTag {
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
+  tag       Tag     @relation(fields: [tagId], references: [id])
+  tagId     String
+
+  @@id([productId, tagId])
+}
+
+// A "variation" covers colour (confirmed from the live site's swatches) and
+// can extend to size/material later without a schema change.
+model ProductVariation {
+  id            String   @id @default(cuid())
+  product       Product  @relation(fields: [productId], references: [id])
+  productId     String
+  sku           String   @unique
+  colorName     String?
+  colorHex      String?
+  priceMinor    Int?
+  compareAtMinor Int?
+  imageUrl      String?
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  inventory     Inventory?
+  media         ProductMedia[]
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+}
+
+model ProductMedia {
+  id         String   @id @default(cuid())
+  product    Product  @relation(fields: [productId], references: [id])
+  productId  String
+  variationId String?
+  variation ProductVariation? @relation(fields: [variationId], references: [id], onDelete: Cascade)
+  url        String
+  altText    String?
+  kind       MediaKind @default(IMAGE)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  @@index([variationId])
+}
+
+enum MediaKind {
+  IMAGE
+  LIFESTYLE
+  DETAIL
+}
+
+// Distinct from ProductMedia to support the homepage "Shop by Video" mapping
+// (one product can have a dedicated video with its own poster + ordering).
+model ProductVideo {
+  id         String   @id @default(cuid())
+  product    Product  @relation(fields: [productId], references: [id])
+  productId  String
+  url        String
+  posterUrl  String?
+  caption    String?
+  sortOrder  Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+}
+
+model Inventory {
+  id                String   @id @default(cuid())
+  product           Product? @relation(fields: [productId], references: [id])
+  productId         String?  @unique
+  variation         ProductVariation? @relation(fields: [variationId], references: [id])
+  variationId       String?  @unique
+  quantityAvailable Int      @default(0)
+  quantityReserved  Int      @default(0)
+  updatedAt         DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Cart / Wishlist
+// ---------------------------------------------------------------------------
+
+model Cart {
+  id         String     @id @default(cuid())
+  user       User?      @relation(fields: [userId], references: [id])
+  userId     String?    @unique
+  guestToken String?    @unique // for persistent guest carts
+  couponCode String?
+  items      CartItem[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model CartItem {
+  id           String   @id @default(cuid())
+  cart         Cart     @relation(fields: [cartId], references: [id])
+  cartId       String
+  product      Product  @relation(fields: [productId], references: [id])
+  productId    String
+  variation    ProductVariation? @relation(fields: [variationId], references: [id])
+  variationId  String?
+  quantity     Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([cartId, productId, variationId])
+}
+
+model Wishlist {
+  id        String         @id @default(cuid())
+  user      User?          @relation(fields: [userId], references: [id])
+  userId    String?        @unique
+  guestToken String?       @unique
+  items     WishlistItem[]
+  createdAt DateTime       @default(now())
+}
+
+model WishlistItem {
+  id         String   @id @default(cuid())
+  wishlist   Wishlist @relation(fields: [wishlistId], references: [id])
+  wishlistId String
+  product    Product  @relation(fields: [productId], references: [id])
+  productId  String
+  createdAt  DateTime @default(now())
+
+  @@unique([wishlistId, productId])
+}
+
+// ---------------------------------------------------------------------------
+// Orders / Payments / Returns
+// ---------------------------------------------------------------------------
+
+model Order {
+  id              String   @id @default(cuid())
+  orderNumber     String   @unique
+  user            User?    @relation(fields: [userId], references: [id])
+  userId          String?
+  guestEmail      String?
+  guestPhone      String?
+  status          OrderStatus @default(PENDING)
+  subtotalMinor   Int
+  discountMinor   Int      @default(0)
+  shippingMinor   Int      @default(0)
+  taxMinor        Int      @default(0)
+  totalMinor      Int
+  currency        String   @default("INR")
+  couponCode      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  items           OrderItem[]
+  addresses       OrderAddress[]
+  statusHistory   OrderStatusHistory[]
+  payments        Payment[]
+  returns         Return[]
+
+  @@index([orderNumber])
+  @@index([userId])
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+model OrderItem {
+  id           String   @id @default(cuid())
+  order        Order    @relation(fields: [orderId], references: [id])
+  orderId      String
+  product      Product  @relation(fields: [productId], references: [id])
+  productId    String
+  variation    ProductVariation? @relation(fields: [variationId], references: [id])
+  variationId  String?
+  titleSnapshot String  // preserve name at time of order
+  priceMinor   Int      // preserve price at time of order — never trust the client
+  quantity     Int
+}
+
+model OrderAddress {
+  id         String   @id @default(cuid())
+  order      Order    @relation(fields: [orderId], references: [id])
+  orderId    String
+  type       AddressType
+  fullName   String
+  phone      String
+  line1      String
+  line2      String?
+  city       String
+  state      String
+  postalCode String
+  country    String   @default("IN")
+}
+
+enum AddressType {
+  SHIPPING
+  BILLING
+}
+
+model OrderStatusHistory {
+  id        String   @id @default(cuid())
+  order     Order    @relation(fields: [orderId], references: [id])
+  orderId   String
+  status    OrderStatus
+  note      String?
+  createdAt DateTime @default(now())
+}
+
+// Razorpay adapter fields live here; swapping providers means adding a
+// column set, not changing the interface consumed by the checkout flow.
+model Payment {
+  id                String   @id @default(cuid())
+  order             Order    @relation(fields: [orderId], references: [id])
+  orderId           String
+  provider          String   @default("razorpay")
+  providerOrderId   String?
+  providerPaymentId String?
+  providerSignature String?
+  status            PaymentStatus @default(CREATED)
+  amountMinor       Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+enum PaymentStatus {
+  CREATED
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUNDED
+}
+
+model Return {
+  id          String   @id @default(cuid())
+  order       Order    @relation(fields: [orderId], references: [id])
+  orderId     String
+  user        User?    @relation(fields: [userId], references: [id])
+  userId      String?
+  reason      String
+  status      ReturnStatus @default(REQUESTED)
+  refundStatus RefundStatus @default(NONE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items       ReturnItem[]
+}
+
+enum ReturnStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+enum RefundStatus {
+  NONE
+  PENDING
+  ISSUED
+}
+
+model ReturnItem {
+  id          String  @id @default(cuid())
+  return      Return  @relation(fields: [returnId], references: [id])
+  returnId    String
+  orderItemId String
+  quantity    Int
+}
+
+model Coupon {
+  id            String   @id @default(cuid())
+  code          String   @unique
+  description   String?
+  discountType  DiscountType
+  discountValue Int // percentage (0-100) or minor units, per discountType
+  minOrderMinor Int?
+  isActive      Boolean  @default(true)
+  startsAt      DateTime?
+  endsAt        DateTime?
+  usages        CouponUsage[]
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FLAT
+}
+
+model CouponUsage {
+  id        String   @id @default(cuid())
+  coupon    Coupon   @relation(fields: [couponId], references: [id])
+  couponId  String
+  userId    String?
+  orderId   String?
+  usedAt    DateTime @default(now())
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  product    Product  @relation(fields: [productId], references: [id])
+  productId  String
+  authorName String
+  rating     Int
+  comment    String?  @db.Text
+  isApproved Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Content / admin-managed homepage & site settings
+// ---------------------------------------------------------------------------
+
+// Real testimonials will flip isPlaceholder to false as they're added —
+// the live site currently shows Lorem Ipsum seed content only.
+model Testimonial {
+  id            String   @id @default(cuid())
+  authorName    String
+  avatarUrl     String?
+  rating        Int      @default(5)
+  quote         String   @db.Text
+  isPlaceholder Boolean  @default(true)
+  isVisible     Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+}
+
+// Empty tiles on the live homepage ("INSTAGRAM 01" etc.) map to rows here
+// with imageUrl/permalink left null until real posts are configured.
+model InstagramPost {
+  id         String   @id @default(cuid())
+  imageUrl   String?
+  permalink  String?
+  caption    String?
+  sortOrder  Int      @default(0)
+  isVisible  Boolean  @default(true)
+}
+
+model AnnouncementOffer {
+  id        String   @id @default(cuid())
+  message   String
+  linkUrl   String?
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  startsAt  DateTime?
+  endsAt    DateTime?
+}
+
+model NewsletterSubscriber {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  consentedAt   DateTime @default(now())
+  source        String?  // e.g. "homepage_footer"
+  isActive      Boolean  @default(true)
+}
+
+model ContactMessage {
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  phone       String?
+  orderNumber String?
+  subject     String
+  message     String   @db.Text
+  status      String   @default("NEW")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model SocialLink {
+  id        String   @id @default(cuid())
+  platform  String   // "instagram" | "facebook" | "pinterest" | "whatsapp"
+  url       String
+  isVisible Boolean  @default(true)
+}
+
+// Single-row-per-key settings table (WhatsApp number, shipping config, etc.)
+model SiteSetting {
+  key       String   @id
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  user       User?    @relation(fields: [userId], references: [id])
+  userId     String?
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+}

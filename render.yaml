@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: bagiroo-api
+    runtime: node
+    plan: starter
+    buildCommand: npm ci && npm run db:generate -w server
+    preDeployCommand: npm run db:deploy -w server
+    startCommand: npm start -w server
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        sync: false
+      - key: CLIENT_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: COOKIE_SECRET
+        generateValue: true
+      - key: COOKIE_SAME_SITE
+        value: none
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: UPLOAD_DIR
+        value: /opt/render/project/src/uploads
+    disk:
+      name: bagiroo-uploads
+      mountPath: /opt/render/project/src/uploads
+      sizeGB: 1

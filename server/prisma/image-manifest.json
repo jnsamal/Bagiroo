@@ -1,0 +1,386 @@
+{
+  "CB-WAVE-BLK": [
+    {
+      "url": "/uploads/products/cb-wave-blk-1.png",
+      "isPrimary": true
+    },
+    {
+      "url": "/uploads/products/cb-wave-blk-2.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/cb-wave-blk-3.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/cb-wave-blk-4.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/cb-wave-blk-5.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/cb-wave-blk-6.jpeg",
+      "isPrimary": false
+    }
+  ],
+  "CB-WAVE-ORG": [
+    {
+      "url": "/uploads/products/cb-wave-org-1.png",
+      "isPrimary": true
+    },
+    {
+      "url": "/uploads/products/cb-wave-org-2.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/cb-wave-org-3.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/cb-wave-org-4.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/cb-wave-org-5.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/cb-wave-org-6.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/cb-wave-org-7.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/cb-wave-org-8.jpeg",
+      "isPrimary": false
+    }
+  ],
+  "CB-WAVE-PGR": [
+    {
+      "url": "/uploads/products/cb-wave-pgr-1.png",
+      "isPrimary": true
+    },
+    {
+      "url": "/uploads/products/cb-wave-pgr-2.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/cb-wave-pgr-3.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/cb-wave-pgr-4.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/cb-wave-pgr-5.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/cb-wave-pgr-6.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/cb-wave-pgr-7.png",
+      "isPrimary": false
+    }
+  ],
+  "HB-CIRC-BLK": [
+    {
+      "url": "/uploads/products/hb-circ-blk-1.png",
+      "isPrimary": true
+    },
+    {
+      "url": "/uploads/products/hb-circ-blk-2.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/hb-circ-blk-3.png",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/hb-circ-blk-4.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/hb-circ-blk-5.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/hb-circ-blk-6.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/hb-circ-blk-7.jpeg",
+      "isPrimary": false
+    }
+  ],
+  "HB-CIRC-PUR": [
+    {
+      "url": "/uploads/products/hb-circ-pur-1.jpeg",
+      "isPrimary": true
+    },
+    {
+      "url": "/uploads/products/hb-circ-pur-2.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/hb-circ-pur-3.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/hb-circ-pur-4.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/hb-circ-pur-5.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/hb-circ-pur-6.jpeg",
+      "isPrimary": false
+    }
+  ],
+  "TB-BLOCK-BLU": [
+    {
+      "url": "/uploads/products/tb-block-blu-1.jpeg",
+      "isPrimary": true
+    },
+    {
+      "url": "/uploads/products/tb-block-blu-2.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-block-blu-3.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-block-blu-4.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-block-blu-5.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-block-blu-6.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-block-blu-7.png",
+      "isPrimary": false
+    }
+  ],
+  "TB-BLOCK-PNK": [
+    {
+      "url": "/uploads/products/tb-block-pnk-1.png",
+      "isPrimary": true
+    },
+    {
+      "url": "/uploads/products/tb-block-pnk-2.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-block-pnk-3.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-block-pnk-4.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-block-pnk-5.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-block-pnk-6.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-block-pnk-7.jpeg",
+      "isPrimary": false
+    }
+  ],
+  "TB-FRIDO-BLK": [
+    {
+      "url": "/uploads/products/tb-frido-blk-1.jpeg",
+      "isPrimary": true
+    },
+    {
+      "url": "/uploads/products/tb-frido-blk-2.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-frido-blk-3.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-frido-blk-4.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-frido-blk-5.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-frido-blk-6.png",
+      "isPrimary": false
+    }
+  ],
+  "TB-FRIDO-CRM": [
+    {
+      "url": "/uploads/products/tb-frido-crm-1.jpeg",
+      "isPrimary": true
+    },
+    {
+      "url": "/uploads/products/tb-frido-crm-2.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-frido-crm-3.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-frido-crm-4.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-frido-crm-5.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-frido-crm-6.jpeg",
+      "isPrimary": false
+    }
+  ],
+  "SB-VSHP-CHR": [
+    {
+      "url": "/uploads/products/sb-vshp-chr-1.jpeg",
+      "isPrimary": true
+    },
+    {
+      "url": "/uploads/products/sb-vshp-chr-2.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/sb-vshp-chr-3.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/sb-vshp-chr-4.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/sb-vshp-chr-5.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/sb-vshp-chr-6.png",
+      "isPrimary": false
+    }
+  ],
+  "SB-VSHP-WHT": [
+    {
+      "url": "/uploads/products/sb-vshp-wht-1.jpeg",
+      "isPrimary": true
+    },
+    {
+      "url": "/uploads/products/sb-vshp-wht-2.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/sb-vshp-wht-3.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/sb-vshp-wht-4.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/sb-vshp-wht-5.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/sb-vshp-wht-6.png",
+      "isPrimary": false
+    }
+  ],
+  "TB-CLASSIC-BLK": [
+    {
+      "url": "/uploads/products/tb-classic-blk-1.png",
+      "isPrimary": true
+    },
+    {
+      "url": "/uploads/products/tb-classic-blk-2.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-classic-blk-3.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-classic-blk-4.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-classic-blk-5.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-classic-blk-6.jpeg",
+      "isPrimary": false
+    }
+  ],
+  "HB-LOCK-BLK": [
+    {
+      "url": "/uploads/products/hb-lock-blk-1.jpeg",
+      "isPrimary": true
+    },
+    {
+      "url": "/uploads/products/hb-lock-blk-2.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/hb-lock-blk-3.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/hb-lock-blk-4.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/hb-lock-blk-5.jpeg",
+      "isPrimary": false
+    }
+  ],
+  "TB-BROWN": [
+    {
+      "url": "/uploads/products/tb-brown-1.png",
+      "isPrimary": true
+    },
+    {
+      "url": "/uploads/products/tb-brown-2.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-brown-3.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-brown-4.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-brown-5.jpeg",
+      "isPrimary": false
+    },
+    {
+      "url": "/uploads/products/tb-brown-6.jpeg",
+      "isPrimary": false
+    }
+  ]
+}
