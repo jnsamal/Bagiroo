@@ -81,7 +81,7 @@ export default function MainHeader() {
 
         <nav
           aria-label="Main navigation"
-          className="hidden xl:flex items-center gap-5 2xl:gap-7 text-xs"
+          className="hidden xl:flex items-center gap-5 2xl:gap-7 text-sm"
         >
           {NAV_ITEMS.map((item) => (
             <div
@@ -124,12 +124,12 @@ export default function MainHeader() {
       <nav id="mobile-navigation" aria-label="Mobile navigation" aria-hidden={!mobileOpen} inert={!mobileOpen ? '' : undefined} className={`mobile-menu-panel ${mobileOpen ? 'is-open' : ''} absolute inset-x-0 top-full z-50 bg-background xl:hidden border-t border-b border-border px-5 py-4 max-h-[70dvh] overflow-y-auto overscroll-contain`}>
         {NAV_ITEMS.map((item) => <div key={item.key}>
           <div className="flex items-center border-b border-border">
-            <NavLink to={item.to} className="flex-1 block py-3 text-sm">{item.label}</NavLink>
+            <NavLink to={item.to} className="flex-1 block py-3 text-base">{item.label}</NavLink>
             {item.megaMenu && <button type="button" className="header-action" aria-label={`Toggle ${item.label} sublinks`} aria-expanded={openKey === item.key} aria-controls={`mobile-${item.key}`} onClick={() => setOpenKey(openKey === item.key ? null : item.key)}>{openKey === item.key ? '−' : '+'}</button>}
           </div>
           {item.megaMenu && openKey === item.key && <div id={`mobile-${item.key}`}><MegaMenu items={menuItemsFor(item.key)} viewAllHref={item.to} isLoading={menuLoading} isError={menuError} onRetry={retryMenu} onNavigate={() => { setOpenKey(null); setMobileOpen(false); }} /></div>}
         </div>)}
-        <Link to="/account" className="block py-3 text-sm">My account</Link>
+        <Link to="/account" className="block py-3 text-base">My account</Link>
       </nav>
       <HeaderSearch open={searchOpen} initialQuery={location.state?.searchQuery || ''} onClose={closeSearch} />
     </header>

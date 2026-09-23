@@ -18,13 +18,18 @@ const updateAccount = asyncHandler(async (req, res) => {
 });
 
 const listAddresses = asyncHandler(async (req, res) => {
-  const addresses = await prisma.userAddress.findMany({ where: { userId: req.user.id } });
+  const addresses = await prisma.userAddress.findMany({ where: { userId: req.user.id }, orderBy: [{ isDefault: 'desc' }, { updatedAt: 'desc' }] });
   res.json({ success: true, data: addresses });
 });
 
 const createAddress = asyncHandler(async (req, res) => {
-  const body = addressSchema.extend({ label: z.string().optional() }).parse(req.body);
-  const address = await prisma.userAddress.create({ data: { ...body, userId: req.user.id } });
+  const body = addressSchema.extend({ label: z.string().trim().max(50).optional(), isDefault: z.boolean().optional() }).parse(req.body);
+  const address = await prisma.$transaction(async tx => {
+    const existingCount = await tx.userAddress.count({ where: { userId: req.user.id } });
+    const isDefault = body.isDefault || existingCount === 0;
+    if (isDefault) await tx.userAddress.updateMany({ where: { userId: req.user.id }, data: { isDefault: false } });
+    return tx.userAddress.create({ data: { ...body, isDefault, userId: req.user.id } });
+  });
   res.status(201).json({ success: true, data: address });
 });
 
@@ -35,9 +40,12 @@ async function assertOwnAddress(userId, addressId) {
 }
 
 const updateAddress = asyncHandler(async (req, res) => {
-  const body = addressSchema.partial().parse(req.body);
-  const result = await prisma.userAddress.updateMany({ where: { id: req.params.id, userId: req.user.id }, data: body });
-  if (!result.count) throw new ApiError(404, 'Address not found.');
+  const body = addressSchema.extend({ label: z.string().trim().max(50).optional(), isDefault: z.boolean().optional() }).partial().parse(req.body);
+  await assertOwnAddress(req.user.id, req.params.id);
+  await prisma.$transaction(async tx => {
+    if (body.isDefault) await tx.userAddress.updateMany({ where: { userId: req.user.id, id: { not: req.params.id } }, data: { isDefault: false } });
+    await tx.userAddress.update({ where: { id: req.params.id }, data: body });
+  });
   const address = await assertOwnAddress(req.user.id, req.params.id);
   res.json({ success: true, data: address });
 });

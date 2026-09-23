@@ -145,7 +145,7 @@ export default function OtpForm({ purpose, variant = 'page', titleId }) {
     return <div className={`${isModal ? 'w-full py-6' : 'max-w-xl w-full min-h-80 mx-auto border border-border p-10 sm:p-14'} text-center flex flex-col items-center justify-center`} role="status">
       <h2 className="text-3xl sm:text-4xl font-semibold leading-tight">{step === 'welcome' ? `Welcome Back ${verifiedUser?.name}` : `Welcome ${verifiedUser?.name}`}</h2>
       <p className="text-base text-muted mt-5">You’re signed in and ready to continue.</p>
-      <button type="button" onClick={continueToAccount} className="store-button bg-ink text-background mt-8 w-full max-w-sm">Continue</button>
+      <button type="button" onClick={continueToAccount} className="store-button border border-transparent bg-ink text-background mt-8 w-full max-w-sm hover:border-ink">Continue</button>
     </div>;
   }
 

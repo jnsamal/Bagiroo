@@ -76,7 +76,7 @@ export default function App() {
         <Route path="/gifting" element={<Gifting />} />
         <Route path="/shop-by-video" element={<ShopByVideo />} />
         <Route path="/store-locator" element={<ContentPage title="Store Locator" contentKey="storeLocatorContent" />} />
-        <Route path="/contact" element={<Contact />} />
+        <Route path="/contact" element={<RequireAuth><Contact /></RequireAuth>} />
         <Route path="/refund-policy" element={<ContentPage title="Refund policy" contentKey="refundContent" />} />
         <Route path="/terms" element={<ContentPage title="Terms and conditions" contentKey="termsContent" />} />
         <Route path="/privacy" element={<ContentPage title="Privacy policy" contentKey="privacyContent" />} />

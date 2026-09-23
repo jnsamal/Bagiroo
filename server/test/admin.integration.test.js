@@ -68,8 +68,10 @@ test('admin authentication, website saves, content editing and password revocati
     assert.equal(collectionData.length, products.length);
     const inventory = await prisma.inventory.findFirst();
     if (inventory) assert.equal((await request('/admin/content/inventory/' + inventory.id, 'PATCH', { quantityAvailable: -1 })).status, 400);
-    assert.equal((await request('/contact', 'POST', { name: 'A', email: 'invalid', subject: 'Other', message: 'short' })).status, 400);
-    const contact = await request('/contact', 'POST', { name: 'QA Customer', email: `contact-${suffix}@example.com`, orderNumber: 'QA-ORDER', subject: 'Order help', message: 'Please help me check the status of this test order.' });
+    const customerCookie = `bagiroo_session=${customerToken}`;
+    assert.equal((await request('/contact', 'POST', { name: 'QA Customer', email: `contact-${suffix}@example.com`, subject: 'Other', message: 'This request must require authentication.' }, '')).status, 401);
+    assert.equal((await request('/contact', 'POST', { name: 'A', email: 'invalid', subject: 'Other', message: 'short' }, customerCookie)).status, 400);
+    const contact = await request('/contact', 'POST', { name: 'QA Customer', email: `contact-${suffix}@example.com`, orderNumber: 'QA-ORDER', subject: 'Order help', message: 'Please help me check the status of this test order.' }, customerCookie);
     assert.equal(contact.status, 201);
     created.push(['contactMessage', contact.body.data.id]);
     assert.equal((await request('/admin/content/contacts/' + contact.body.data.id, 'PATCH', { status: 'RESOLVED' })).status, 200);
@@ -79,6 +81,12 @@ test('admin authentication, website saves, content editing and password revocati
     assert.equal(visibleByDefault.body.data.isPublished, true);
     created.push(['product', visibleByDefault.body.data.id]);
     assert.equal((await request('/products/' + visibleByDefault.body.data.slug)).status, 200);
+    const reviewBody = { rating: 5, comment: 'This is a useful authenticated product review.' };
+    assert.equal((await request(`/products/${visibleByDefault.body.data.slug}/reviews`, 'POST', reviewBody, '')).status, 401);
+    const review = await request(`/products/${visibleByDefault.body.data.slug}/reviews`, 'POST', reviewBody, customerCookie);
+    assert.equal(review.status, 201);
+    created.push(['review', review.body.data.id]);
+    assert.equal((await prisma.review.findUnique({ where: { id: review.body.data.id } })).isApproved, false);
     const removable = await request('/admin/products', 'POST', { title: 'QA removable product ' + suffix, sku: 'QA-remove-' + suffix, slug: 'qa-removable-product-' + suffix, priceMinor: 10000 });
     assert.equal(removable.status, 201);
     const removed = await request('/admin/products/' + removable.body.data.id, 'DELETE');

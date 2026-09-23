@@ -9,6 +9,18 @@ const navigation = [
   { key: 'shop-by-video', label: 'Shop by Video', to: '/shop-by-video', megaMenu: false, visible: true },
   { key: 'store-locator', label: 'Store Locator', to: '/store-locator', megaMenu: false, visible: true },
 ];
+const footerShopLinks = [
+  { key: 'collection', label: 'Collection', to: '/shop', visible: true },
+  { key: 'new-arrivals', label: 'New Arrivals', to: '/new-arrivals', visible: true },
+  { key: 'best-sellers', label: 'Best Sellers', to: '/best-sellers', visible: true },
+  { key: 'shop-by-video', label: 'Shop by Video', to: '/shop-by-video', visible: true },
+];
+const footerHelpLinks = [
+  { key: 'contact', label: 'Contact', to: '/contact', visible: true },
+  { key: 'refund-policy', label: 'Refund Policy', to: '/refund-policy', visible: true },
+  { key: 'terms', label: 'Terms & Conditions', to: '/terms', visible: true },
+  { key: 'privacy', label: 'Privacy Policy', to: '/privacy', visible: true },
+];
 const fields = [
   ['siteName', 'Store name', 'text', 'Bagiroo & Co.', 'Brand'],
   ['logoUrl', 'Logo image', 'image', '/images/bagiroo-logo.png', 'Brand'],
@@ -46,7 +58,16 @@ const fields = [
   ['uspText', 'Benefits (one per line)', 'textarea', 'Thoughtful design\nPremium finish\nEasy returns\nCustomer support', 'Homepage'],
   ['newsletterTitle', 'Newsletter heading', 'text', 'Join our world', 'Homepage'],
   ['newsletterDescription', 'Newsletter description', 'textarea', 'Product stories, new arrivals and considered edits, delivered occasionally.', 'Homepage'],
+  ['footerFollowLabel', 'Social section heading', 'text', 'Follow Bagiroo&Co.', 'Footer'],
   ['footerDescription', 'Footer description', 'textarea', 'Contemporary bags designed for everyday movement.', 'Footer'],
+  ['footerShopTitle', 'Shop column heading', 'text', 'Shop', 'Footer'],
+  ['footerShopLinks', 'Shop links', 'link-list', footerShopLinks, 'Footer'],
+  ['footerHelpTitle', 'Help column heading', 'text', 'Help', 'Footer'],
+  ['footerHelpLinks', 'Help links', 'link-list', footerHelpLinks, 'Footer'],
+  ['footerCareTitle', 'Customer care heading', 'text', 'Customer Care', 'Footer'],
+  ['footerCareText', 'Customer care text', 'text', 'Questions about an order? Visit our', 'Footer'],
+  ['footerCareLinkLabel', 'Customer care link label', 'text', 'Contact page', 'Footer'],
+  ['footerCareLinkUrl', 'Customer care link destination', 'url', '/contact', 'Footer'],
   ['contactContent', 'Contact page content', 'textarea', '', 'Pages and policies'],
   ['refundContent', 'Refund policy content', 'textarea', '', 'Pages and policies'],
   ['termsContent', 'Terms and conditions', 'textarea', '', 'Pages and policies'],
@@ -59,8 +80,14 @@ const fields = [
   ['taxIncluded', 'Product prices include tax', 'boolean', true, 'Checkout'],
 ];
 const safeUrl = z.string().max(2000).refine(value => !value || (/^\/(?!\/)/.test(value) && !/[\\\s]/.test(value)) || /^https?:\/\/[^\s]+$/i.test(value), 'Use a relative /path or an http(s) URL.');
+const footerLinkSchema = z.object({
+  key: z.string().min(1).max(100),
+  label: z.string().min(1).max(80),
+  to: safeUrl.refine(Boolean),
+  visible: z.boolean(),
+}).strict();
 const shape = Object.fromEntries(fields.map(([key, , type, , , min, max]) => [key,
-  type === 'navigation' ? z.array(z.object({ key: z.enum(navigation.map(item => item.key)), label: z.string().min(1).max(80), to: safeUrl.refine(Boolean), megaMenu: z.boolean(), visible: z.boolean() }).strict()).length(navigation.length).refine(items => new Set(items.map(item => item.key)).size === navigation.length, 'Each navigation item must appear once.') : type === 'boolean' ? z.boolean() : type === 'number' ? z.number().min(min).max(max).refine(value => key === 'taxPercent' || Number.isInteger(value), 'Use a whole number.') : type === 'color' ? z.string().regex(/^#[0-9a-f]{6}$/i) : type === 'select' ? z.enum(min) : ['url', 'image'].includes(type) ? safeUrl : z.string().max(20000),
+  type === 'navigation' ? z.array(z.object({ key: z.enum(navigation.map(item => item.key)), label: z.string().min(1).max(80), to: safeUrl.refine(Boolean), megaMenu: z.boolean(), visible: z.boolean() }).strict()).length(navigation.length).refine(items => new Set(items.map(item => item.key)).size === navigation.length, 'Each navigation item must appear once.') : type === 'link-list' ? z.array(footerLinkSchema).max(20).refine(items => new Set(items.map(item => item.key)).size === items.length, 'Each footer link must have a unique key.') : type === 'boolean' ? z.boolean() : type === 'number' ? z.number().min(min).max(max).refine(value => key === 'taxPercent' || Number.isInteger(value), 'Use a whole number.') : type === 'color' ? z.string().regex(/^#[0-9a-f]{6}$/i) : type === 'select' ? z.enum(min) : ['url', 'image'].includes(type) ? safeUrl : z.string().max(20000),
 ]));
 const schema = z.object(shape).strict();
 const defaults = Object.fromEntries(fields.map(([key, , , value]) => [key, value]));

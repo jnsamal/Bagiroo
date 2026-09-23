@@ -18,5 +18,11 @@ const commonOptions = {
 const authRateLimiter = rateLimit({ ...commonOptions, max: env.rateLimitMaxAttempts });
 const otpRequestRateLimiter = rateLimit({ ...commonOptions, max: env.rateLimitMaxAttempts });
 const otpVerifyRateLimiter = rateLimit({ ...commonOptions, max: Math.max(10, env.rateLimitMaxAttempts * 2), skipSuccessfulRequests: true });
+const reviewRateLimiter = rateLimit({
+  ...commonOptions,
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: { success: false, error: { message: 'Too many reviews submitted. Please try again later.' } },
+});
 
-module.exports = { authRateLimiter, otpRequestRateLimiter, otpVerifyRateLimiter };
+module.exports = { authRateLimiter, otpRequestRateLimiter, otpVerifyRateLimiter, reviewRateLimiter };

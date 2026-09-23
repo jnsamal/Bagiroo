@@ -15,12 +15,15 @@ const definitions = {
   collections: { model: 'collection', title: 'Collections', fields: [['name','Name','text'],['slug','Slug','text'],['description','Description','textarea'],['imageUrl','Image','image'],['sortOrder','Display order','number'],['isFeatured','Featured on homepage','boolean'],['productIds','Products','products']], schema: z.object({ name: text.min(1), slug: text.min(1), description: text, imageUrl: url, sortOrder: number, isFeatured: z.boolean(), productIds: z.array(z.string()) }), include: { products: true } },
   videos: { model: 'productVideo', title: 'Product videos', fields: [['productId','Product','product'],['url','Video URL','video'],['posterUrl','Poster image','image'],['caption','Caption','text'],['sortOrder','Display order','number'],['isActive','Active','boolean']], schema: z.object({ productId: text.min(1), url: url.refine(Boolean, 'Video is required.'), posterUrl: url, caption: text, sortOrder: number, isActive: z.boolean() }) },
   instagram: { model: 'instagramPost', title: 'Instagram posts', fields: [['imageUrl','Image','image'],['permalink','Post URL','url'],['caption','Caption','textarea'],['sortOrder','Display order','number'],['isVisible','Visible','boolean']], schema: z.object({ imageUrl: url, permalink: url, caption: text, sortOrder: number, isVisible: z.boolean() }) },
-  reviews: { model: 'review', title: 'Product reviews', fields: [['productId','Product','product'],['authorName','Customer name','text'],['rating','Rating (1–5)','number'],['comment','Review','textarea'],['isApproved','Approved','boolean']], schema: z.object({ productId: text.min(1), authorName: text.min(1), rating: number.min(1).max(5), comment: text, isApproved: z.boolean() }) },
+  reviews: { model: 'review', title: 'Product reviews', orderBy: { createdAt: 'desc' }, fields: [['productId','Product','product'],['authorName','Customer name','text'],['rating','Rating (1–5)','number'],['comment','Review','textarea'],['isApproved','Approved','boolean']], schema: z.object({ productId: text.min(1), authorName: text.min(1), rating: number.min(1).max(5), comment: text, isApproved: z.boolean() }) },
   inventory: { model: 'inventory', title: 'Inventory', editOnly: true, fields: [['quantityAvailable','On-hand quantity','number']], schema: z.object({ quantityAvailable: number.min(0) }), include: { product: { select: { title: true, sku: true } }, variation: { select: { colorName: true, sku: true, product: { select: { title: true } } } } } },
   contacts: { model: 'contactMessage', title: 'Contact messages', editOnly: true, orderBy: { createdAt: 'desc' }, fields: [['status','Status','select',null,null,['NEW','IN_PROGRESS','RESOLVED']]], schema: z.object({ status: z.enum(['NEW','IN_PROGRESS','RESOLVED']) }) },
 };
 function definition(req) { const value = definitions[req.params.resource]; if (!value) throw new ApiError(404, 'Content section not found.'); return value; }
-const getWebsite = asyncHandler(async (req, res) => res.json({ success: true, data: { fields: website.fields, values: await website.getWebsite() } }));
+const getWebsite = asyncHandler(async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ success: true, data: { fields: website.fields, values: await website.getWebsite() } });
+});
 const saveWebsite = asyncHandler(async (req, res) => res.json({ success: true, data: await website.saveWebsite(req.body) }));
 const list = asyncHandler(async (req, res) => {
   const def = definition(req);

@@ -7,8 +7,14 @@ export default function AdminWebsite() {
   const queryClient = useQueryClient();
   const [values, setValues] = useState(null);
   const [group, setGroup] = useState('Brand');
-  const { data, isLoading, isError } = useQuery({ queryKey: ['admin-website'], queryFn: () => api.get('/admin/website') });
-  useEffect(() => { if (data && values === null) setValues(data.values); }, [data, values]);
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['admin-website'],
+    queryFn: () => api.get(`/admin/website?fresh=${Date.now()}`),
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
+  });
+  useEffect(() => { if (data) setValues(data.values); }, [data]);
   const save = useMutation({ mutationFn: () => api.patch('/admin/website', values), onSuccess: () => { ['admin-website', 'settings', 'homepage', 'cart', 'checkout-validate'].forEach(key => queryClient.invalidateQueries({ queryKey: [key] })); } });
   if (isLoading) return <p role="status">Loading website settings…</p>;
   if (isError) return <p role="alert">Could not load website settings.</p>;

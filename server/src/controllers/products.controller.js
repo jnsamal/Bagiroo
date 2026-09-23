@@ -1,6 +1,7 @@
 const prisma = require('../config/prismaClient');
 const asyncHandler = require('../middleware/asyncHandler');
 const { ApiError } = require('../middleware/errorHandler');
+const { z } = require('zod');
 const { productQuerySchema } = require('../../../shared/validation/productSchemas');
 const { DEFAULT_PAGE_SIZE } = require('../../../shared/constants');
 
@@ -63,4 +64,22 @@ const getProductBySlug = asyncHandler(async (req, res) => {
   res.json({ success: true, data: product });
 });
 
-module.exports = { listProducts, getProductBySlug };
+const createReview = asyncHandler(async (req, res) => {
+  const input = z.object({
+    rating: z.number().int().min(1).max(5),
+    comment: z.string().trim().min(10).max(3000),
+  }).strict().parse(req.body);
+  const [product, user] = await Promise.all([
+    prisma.product.findFirst({ where: { slug: req.params.slug, isPublished: true, deletedAt: null }, select: { id: true } }),
+    prisma.user.findUnique({ where: { id: req.user.id }, select: { name: true } }),
+  ]);
+  if (!product) throw new ApiError(404, 'Product not found.');
+  if (!user) throw new ApiError(401, 'Not authenticated.');
+  const review = await prisma.review.create({
+    data: { productId: product.id, authorName: user.name?.trim() || 'Bagiroo customer', ...input, isApproved: false },
+    select: { id: true, createdAt: true },
+  });
+  res.status(201).json({ success: true, data: { ...review, message: 'Thanks for your review. It will appear after approval.' } });
+});
+
+module.exports = { listProducts, getProductBySlug, createReview };

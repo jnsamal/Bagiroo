@@ -5,17 +5,25 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    allowedHosts: ['.trycloudflare.com'],
     proxy: {
       '/api': {
         target: 'http://localhost:4000',
         changeOrigin: true,
+        configure(proxy) {
+          proxy.on('proxyReq', (proxyReq) => {
+            proxyReq.setHeader('Origin', 'http://localhost:5173');
+          });
+        },
       },
-      // Product/category images and videos are served by the API from
-      // /uploads -- without this, <img> tags resolve relative URLs
-      // against the Vite dev server instead, which has no such route.
       '/uploads': {
         target: 'http://localhost:4000',
         changeOrigin: true,
+        configure(proxy) {
+          proxy.on('proxyReq', (proxyReq) => {
+            proxyReq.setHeader('Origin', 'http://localhost:5173');
+          });
+        },
       },
     },
   },

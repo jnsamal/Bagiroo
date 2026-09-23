@@ -12,6 +12,7 @@ import RecentlyViewedProducts from '../components/product/RecentlyViewedProducts
 import { useWebsite } from '../lib/useWebsite';
 import LoadingSkeleton from '../components/shared/LoadingSkeleton';
 import ErrorState from '../components/shared/ErrorState';
+import ProductReviews from '../components/product/ProductReviews';
 
 // Layout follows the Miraggio reference the client chose (gallery + price
 // block + swatches + accordions + sticky mobile CTA + related products),
@@ -144,7 +145,7 @@ export default function ProductDetail() {
       </div>
 
       <RelatedProducts categorySlug={categorySlug} excludeSlug={product.slug} />
-      {product.reviews?.length > 0 && <section className="mt-16 border-t border-border pt-10"><h2 className="section-title mb-6">Customer reviews</h2><div className="grid sm:grid-cols-2 gap-5">{product.reviews.map(review => <article key={review.id} className="border border-border p-5"><p className="font-medium">{review.authorName}</p><p className="text-sm mt-2">{review.rating} / 5</p><p className="text-sm text-muted mt-3 whitespace-pre-wrap">{review.comment}</p></article>)}</div></section>}
+      <ProductReviews slug={product.slug} reviews={product.reviews} />
       <RecentlyViewedProducts key={product.id} currentSlug={product.slug} />
 
       <StickyMobileCTA price={price} onAddToCart={handleAddToCart} disabled={!price} />

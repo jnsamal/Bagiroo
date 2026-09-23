@@ -12,7 +12,7 @@
 
 @layer base {
   body {
-    @apply bg-background text-ink font-sans antialiased;
+    @apply bg-background text-ink text-base font-sans antialiased;
   }
   html { scroll-behavior: smooth; }
   body { margin: 0; }
@@ -56,7 +56,7 @@
   .nav-link:hover .nav-link-label::after, .nav-link:focus-visible .nav-link-label::after, .nav-link[aria-current="page"] .nav-link-label::after { transform: scaleX(1); }
   .store-section { @apply max-w-screen-2xl mx-auto px-5 sm:px-8 lg:px-12 py-12 md:py-20; }
   .section-title { @apply text-2xl sm:text-3xl md:text-4xl font-semibold; letter-spacing: -.04em; line-height: 1.15; }
-  .store-button { @apply inline-flex items-center justify-center min-h-12 px-6 text-xs uppercase tracking-widest; transition: background-color .2s, color .2s; }
+  .store-button { @apply inline-flex items-center justify-center min-h-12 px-6 text-xs uppercase tracking-widest; transition: background-color .2s, color .2s, border-color .2s; }
   .store-button:hover { @apply bg-surface text-ink; }
   .hero-collection-button { transition: background-color .25s ease .1s, color .25s ease .1s; }
   .hero-collection-button:hover, .hero-collection-button:focus-visible { @apply bg-ink text-background; }

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { useWebsite } from '../lib/useWebsite';
 
@@ -8,11 +8,29 @@ const initialForm = { name: '', email: '', phone: '', orderNumber: '', subject: 
 export default function Contact() {
   const website = useWebsite();
   const [form, setForm] = useState(initialForm);
+  const { data: me } = useQuery({ queryKey: ['me'], queryFn: () => api.get('/auth/me'), retry: false });
+  const accountForm = () => ({ ...initialForm, name: me?.user?.name || '', email: me?.user?.email || '', phone: me?.user?.phone || '' });
   const submit = useMutation({
     mutationFn: body => api.post('/contact', body),
-    onSuccess: () => setForm(initialForm),
+    onSuccess: () => setForm(accountForm()),
   });
   const update = event => { submit.reset(); setForm(current => ({ ...current, [event.target.name]: event.target.value })); };
+
+  useEffect(() => {
+    if (!submit.isSuccess) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = event => { if (event.key === 'Escape') submit.reset(); };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [submit.isSuccess]);
+
+  useEffect(() => {
+    if (me?.user) setForm(current => ({ ...current, name: current.name || me.user.name || '', email: current.email || me.user.email || '', phone: current.phone || me.user.phone || '' }));
+  }, [me]);
 
   return <div className="store-section max-w-6xl">
     <div className="grid md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-12 lg:gap-20">
@@ -32,11 +50,19 @@ export default function Contact() {
         <label className="block text-sm">Message *<textarea required minLength={10} maxLength={5000} rows={7} name="message" value={form.message} onChange={update} className="admin-input mt-2" /></label>
         <label className="absolute -left-[10000px]" aria-hidden="true">Website<input name="website" value={form.website} onChange={update} tabIndex={-1} autoComplete="off" /></label>
         <button disabled={submit.isPending} className="store-button bg-ink text-background disabled:opacity-50">{submit.isPending ? 'Sending…' : 'Send message'}</button>
-        <div aria-live="polite">
-          {submit.isSuccess && <p className="text-sm">Thanks — your message has been received. We’ll get back to you soon.</p>}
-          {submit.isError && <p role="alert" className="text-sm text-red-700">{submit.error.message}</p>}
-        </div>
+        {submit.isError && <p role="alert" className="text-sm text-red-700">{submit.error.message}</p>}
       </form>
     </div>
+    {submit.isSuccess && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 px-4 py-6" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) submit.reset(); }}>
+      <section role="dialog" aria-modal="true" aria-labelledby="contact-success-title" className="relative w-full max-w-[430px] overflow-hidden rounded-2xl bg-white">
+        <button type="button" onClick={() => submit.reset()} aria-label="Close confirmation" className="absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-white text-xl leading-none text-ink transition-colors duration-200 hover:bg-ink hover:text-white">×</button>
+        <div className="flex min-h-[330px] flex-col items-center justify-center px-7 py-12 text-center sm:px-10">
+          <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-ink text-2xl text-white" aria-hidden="true">✓</div>
+          <h2 id="contact-success-title" className="text-2xl font-semibold leading-tight">Thanks — your message has been received.</h2>
+          <p className="mt-4 text-sm text-muted">We’ll get back to you soon.</p>
+          <button type="button" onClick={() => submit.reset()} className="store-button mt-8 w-full border border-transparent bg-ink text-background hover:border-ink">Continue</button>
+        </div>
+      </section>
+    </div>}
   </div>;
 }

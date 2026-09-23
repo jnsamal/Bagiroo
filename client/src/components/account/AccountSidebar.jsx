@@ -1,8 +1,6 @@
 import { NavLink } from 'react-router-dom';
 
-// Icon + label rows, matching the reference dashboard's structure while
-// keeping Bagiroo's own flat, minimal styling (no card backgrounds, no
-// rounded pills, no shadows -- just a thin active-state indicator).
+// Icon + label rows with a high-contrast active state.
 const LINKS = [
   { to: '/account', label: 'Overview', icon: '\u2302', end: true },
   { to: '/account/orders', label: 'My Orders', icon: '\u{1F4E6}' },
@@ -23,8 +21,8 @@ export default function AccountSidebar() {
               to={link.to}
               end={link.end}
               className={({ isActive }) =>
-                `flex h-full min-h-12 items-center gap-3 py-3 px-3 text-sm sm:text-base border-l-2 md:pl-4 md:-ml-4 ${
-                  isActive ? 'border-ink font-medium' : 'border-transparent text-muted'
+                `flex h-full min-h-12 items-center gap-3 border px-4 py-3 text-sm transition-colors duration-200 sm:text-base ${
+                  isActive ? 'border-ink bg-ink text-background font-medium' : 'border-border text-muted hover:border-ink hover:bg-surface hover:text-ink'
                 }`
               }
             >

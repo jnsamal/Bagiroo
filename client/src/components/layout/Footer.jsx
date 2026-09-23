@@ -20,6 +20,20 @@ function SocialIcon({ platform }) {
   return <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[platform] || <><circle cx="12" cy="12" r="9" /><path d="m9 15 6-6M10 9h5v5" /></>}</svg>;
 }
 
+function StoreLink({ to, children }) {
+  const destination = safeUrl(to);
+  if (!destination) return null;
+  return /^https?:\/\//i.test(destination)
+    ? <a href={destination}>{children}</a>
+    : <Link to={destination}>{children}</Link>;
+}
+
+function FooterLinkList({ links = [] }) {
+  return <ul className="space-y-2 text-background/80">{links.filter(link => link.visible !== false).map(link => (
+    <li key={link.key}><StoreLink to={link.to}>{link.label}</StoreLink></li>
+  ))}</ul>;
+}
+
 // Only renders social links that are actually configured (non-empty URL),
 // per the spec — no placeholder "#" links for unconfigured platforms.
 export default function Footer({ socialLinks = [] }) {
@@ -28,7 +42,7 @@ export default function Footer({ socialLinks = [] }) {
     <footer className="store-footer bg-ink text-background">
       <div className="max-w-screen-2xl mx-auto px-5 sm:px-8 lg:px-12 py-12 md:py-16">
         <div className="flex flex-wrap gap-5 items-center justify-between border-b border-white/10 pb-6 mb-10">
-          <span className="font-medium">Follow Bagiroo&amp;Co.</span>
+          <span className="font-medium">{website.footerFollowLabel || 'Follow Bagiroo&Co.'}</span>
           <div className="flex flex-wrap gap-3">
             {socialLinks.map((link) => safeUrl(link.url, { allowRelative: false }) && (
               <a key={link.id} href={safeUrl(link.url, { allowRelative: false })} target="_blank" rel="noopener noreferrer" className="social-icon-link w-10 h-10 border border-white/30 rounded-full inline-flex items-center justify-center transition-colors hover:bg-background hover:text-ink" aria-label={PLATFORM_LABELS[link.platform] || link.platform} title={PLATFORM_LABELS[link.platform] || link.platform}>
@@ -44,27 +58,18 @@ export default function Footer({ socialLinks = [] }) {
             <p className="text-background/70">{website.footerDescription ?? 'Contemporary bags designed for everyday movement.'}</p>
           </div>
           <div>
-            <p className="font-medium mb-3">Shop</p>
-            <ul className="space-y-2 text-background/80">
-              <li><Link to="/shop">Collection</Link></li>
-              <li><Link to="/new-arrivals">New Arrivals</Link></li>
-              <li><Link to="/best-sellers">Best Sellers</Link></li>
-              <li><Link to="/shop-by-video">Shop by Video</Link></li>
-            </ul>
+            <p className="font-medium mb-3">{website.footerShopTitle || 'Shop'}</p>
+            <FooterLinkList links={website.footerShopLinks} />
           </div>
           <div>
-            <p className="font-medium mb-3">Help</p>
-            <ul className="space-y-2 text-background/80">
-              <li><Link to="/contact">Contact</Link></li>
-              <li><Link to="/refund-policy">Refund Policy</Link></li>
-              <li><Link to="/terms">Terms &amp; Conditions</Link></li>
-              <li><Link to="/privacy">Privacy Policy</Link></li>
-            </ul>
+            <p className="font-medium mb-3">{website.footerHelpTitle || 'Help'}</p>
+            <FooterLinkList links={website.footerHelpLinks} />
           </div>
           <div>
-            <p className="font-medium mb-3">Customer Care</p>
+            <p className="font-medium mb-3">{website.footerCareTitle || 'Customer Care'}</p>
             <p className="text-background/80">
-              Questions about an order? Visit our <Link to="/contact">Contact page</Link>.
+              {website.footerCareText || 'Questions about an order? Visit our'}{' '}
+              <StoreLink to={website.footerCareLinkUrl || '/contact'}>{website.footerCareLinkLabel || 'Contact page'}</StoreLink>.
             </p>
           </div>
         </div>
