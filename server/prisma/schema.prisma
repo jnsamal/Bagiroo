@@ -17,7 +17,7 @@ datasource db {
 
 model User {
   id          String   @id @default(cuid())
-  phone       String   @unique // E.164, e.g. +919999999999
+  phone       String?  @unique // optional contact number; email is the login identity
   loginId     String?  @unique
   passwordHash String?
   adminSessionVersion Int @default(0)
@@ -48,7 +48,8 @@ enum Role {
 
 model OtpToken {
   id         String   @id @default(cuid())
-  phone      String
+  phone      String?
+  email      String?
   codeHash   String // bcrypt hash of the OTP — never store plaintext
   purpose    OtpPurpose @default(LOGIN)
   expiresAt  DateTime
@@ -59,6 +60,7 @@ model OtpToken {
   createdAt  DateTime @default(now())
 
   @@index([phone, purpose])
+  @@index([email, purpose])
 }
 
 // Persistent authentication failure counters. The lockKey is a SHA-256 hash
@@ -159,6 +161,7 @@ model Product {
   isPublished     Boolean  @default(false)
   isBestSeller    Boolean  @default(false)
   isNewArrival    Boolean  @default(false)
+  hasColorVariations Boolean @default(false)
   sortOrder       Int      @default(0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

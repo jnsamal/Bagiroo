@@ -6,6 +6,7 @@ import AnnouncementBar from './AnnouncementBar';
 import MainHeader from './MainHeader';
 import Footer from './Footer';
 import WhatsAppLauncher from './WhatsAppLauncher';
+import ScrollReveal from './ScrollReveal';
 
 // Standard layout-route pattern (one <Routes> tree, <Outlet/> for the
 // matched child) -- replaces an earlier nested-<Routes> approach that
@@ -40,7 +41,9 @@ export default function StorefrontLayout() {
       <MainHeader />
 
       <main className="flex-1">
-        <Outlet />
+        <ScrollReveal>
+          <Outlet />
+        </ScrollReveal>
       </main>
 
       <Footer socialLinks={settings?.socialLinks || []} />

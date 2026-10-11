@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import PlaceholderImage from '../shared/PlaceholderImage';
-import { resolveMediaUrl } from '../../lib/media';
+import OptimizedImage from '../shared/OptimizedImage';
 import { useWebsite } from '../../lib/useWebsite';
 
 export default function CategoryGrid({ categories }) {
@@ -15,7 +15,7 @@ export default function CategoryGrid({ categories }) {
           <Link key={cat.id} to={`/shop/category/${cat.slug}`} className="category-card block group min-w-0">
             <div className="overflow-hidden bg-surface">
             {cat.imageUrl ? (
-              <img loading="lazy" src={resolveMediaUrl(cat.imageUrl)} alt={cat.name} className="w-full aspect-[8/9] object-cover bg-surface" />
+              <OptimizedImage src={cat.imageUrl} widths={[320, 480, 640, 800]} sizes="(max-width: 640px) 50vw, 25vw" alt={cat.name} className="w-full aspect-[8/9] object-cover bg-surface" />
             ) : (
               <PlaceholderImage label={cat.name} className="w-full aspect-[8/9]" />
             )}

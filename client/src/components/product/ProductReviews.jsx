@@ -43,7 +43,7 @@ export default function ProductReviews({ slug, reviews = [] }) {
     <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
       <div>
         {reviews.length > 0 ? <div className="grid gap-5 sm:grid-cols-2">{reviews.map(review => <article key={review.id} className="border border-border p-5">
-          <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-medium">{review.authorName}</p><Stars rating={review.rating} /></div>
+          <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-medium">{review.authorName}</p>{review.createdAt && <p className="mt-1 text-xs text-muted">{new Date(review.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>}</div><Stars rating={review.rating} /></div>
           <p className="mt-4 whitespace-pre-wrap text-sm text-muted">{review.comment}</p>
         </article>)}</div> : <div className="border border-border p-6 text-sm text-muted">No reviews yet. Be the first to review this product.</div>}
       </div>
@@ -51,14 +51,14 @@ export default function ProductReviews({ slug, reviews = [] }) {
       {isLoadingUser ? <div className="min-h-56 animate-pulse border border-border bg-surface" aria-label="Loading review form" /> : !me ? <div className="flex min-h-56 flex-col items-center justify-center border border-border p-6 text-center sm:p-8">
         <h3 className="text-xl font-semibold">Sign in to write a review</h3>
         <p className="mt-2 text-sm text-muted">You need a Bagiroo account before submitting a product review.</p>
-        <Link to="/login" state={{ from: location }} className="store-button mt-6 bg-ink text-background">Login to review</Link>
+        <Link to="/login" state={{ from: location }} className="store-button mt-6 border border-ink bg-ink text-background">Login to review</Link>
       </div> : <form onSubmit={event => { event.preventDefault(); submit.mutate(form); }} className="border border-border p-6 sm:p-8">
         <h3 className="text-xl font-semibold">Write a review</h3>
         <p className="mt-2 text-sm text-muted">Reviews are published after approval.</p>
         <p className="mt-5 text-sm">Reviewing as <strong>{me.user.name || 'Bagiroo customer'}</strong></p>
         <fieldset className="mt-5"><legend className="text-sm">Rating *</legend><div className="mt-2 flex gap-2">{[1, 2, 3, 4, 5].map(rating => <label key={rating} className={`flex h-10 w-10 cursor-pointer items-center justify-center border text-lg transition-colors ${form.rating === rating ? 'border-ink bg-ink text-background' : 'border-border hover:border-ink'}`}><input type="radio" name="rating" value={rating} checked={form.rating === rating} onChange={() => { submit.reset(); setForm(current => ({ ...current, rating })); }} className="sr-only" /><span aria-hidden="true">★</span><span className="sr-only">{rating} stars</span></label>)}</div></fieldset>
-        <label className="mt-5 block text-sm">Your review *<textarea required minLength={10} maxLength={3000} rows={5} value={form.comment} onChange={event => { submit.reset(); setForm(current => ({ ...current, comment: event.target.value })); }} className="admin-input mt-2" /></label>
-        <button disabled={submit.isPending} className="store-button mt-5 w-full bg-ink text-background disabled:opacity-50">{submit.isPending ? 'Submitting…' : 'Submit review'}</button>
+        <label className="mt-5 block text-sm">Your review *<textarea required minLength={10} maxLength={3000} rows={5} value={form.comment} onChange={event => { submit.reset(); setForm(current => ({ ...current, comment: event.target.value })); }} className="form-field mt-2 py-3" /></label>
+        <button disabled={submit.isPending} className="store-button mt-5 w-full border border-ink bg-ink text-background disabled:opacity-50">{submit.isPending ? 'Submitting…' : 'Submit review'}</button>
         {submit.isError && <p role="alert" className="mt-4 text-sm text-red-700">{submit.error.message}</p>}
       </form>}
     </div>

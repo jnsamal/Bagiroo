@@ -16,6 +16,12 @@ test('customer endpoints cannot read or mutate another customer records', async 
   const base = `http://127.0.0.1:${server.address().port}/api/v1`;
   const csrf = await createCsrfContext(base);
   const suffix = crypto.randomUUID();
+  const originalReturnsSetting = await prisma.siteSetting.findUnique({ where: { key: 'returns_enabled' } });
+  await prisma.siteSetting.upsert({
+    where: { key: 'returns_enabled' },
+    create: { key: 'returns_enabled', value: 'true' },
+    update: { value: 'true' },
+  });
   const product = await prisma.product.findFirst({ where: { isPublished: true, deletedAt: null } });
   assert(product, 'A published product is required for this integration test');
 
@@ -86,6 +92,11 @@ test('customer endpoints cannot read or mutate another customer records', async 
     await prisma.cart.deleteMany({ where: { id: { in: [cartA.id, cartB.id] } } });
     await prisma.userAddress.deleteMany({ where: { userId: { in: [userA.id, userB.id] } } });
     await prisma.user.deleteMany({ where: { id: { in: [userA.id, userB.id] } } });
+    if (originalReturnsSetting) {
+      await prisma.siteSetting.update({ where: { key: 'returns_enabled' }, data: { value: originalReturnsSetting.value } });
+    } else {
+      await prisma.siteSetting.deleteMany({ where: { key: 'returns_enabled' } });
+    }
     await new Promise(resolve => server.close(resolve));
     await prisma.$disconnect();
   }

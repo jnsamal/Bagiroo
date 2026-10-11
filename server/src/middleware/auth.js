@@ -9,7 +9,7 @@ function requireAuth(req, res, next) {
 
   try {
     const payload = jwt.verify(token, env.jwtSecret);
-    req.user = payload; // { id, phone, role }
+    req.user = payload; // { id, email, role }
     next();
   } catch (err) {
     next(new ApiError(401, 'Session expired or invalid.'));

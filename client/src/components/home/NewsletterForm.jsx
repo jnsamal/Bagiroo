@@ -29,22 +29,27 @@ export default function NewsletterForm() {
           <h2 className="text-3xl font-semibold">{website.newsletterTitle ?? 'Join our world'}</h2>
           <p className="text-muted mt-1">{website.newsletterDescription ?? 'Product stories, new arrivals and considered edits, delivered occasionally.'}</p>
         </div>
-        <form onSubmit={handleSubmit} className="flex gap-3 w-full md:w-auto">
+        <form onSubmit={handleSubmit} className="w-full md:w-auto" noValidate>
+          <label htmlFor="newsletter-email" className="mb-2 block text-xs uppercase tracking-widest">Email address</label>
+          <div className="flex flex-col gap-3 sm:flex-row">
           <input
+            id="newsletter-email"
             type="email"
             required
-            placeholder="Your Email Please"
+            placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="border border-border px-4 py-3 flex-1 md:w-72 bg-background"
+            className="min-h-12 border border-border px-4 flex-1 md:w-72 bg-background"
           />
           <button
             type="submit"
             disabled={status === 'loading'}
-            className="bg-ink text-background px-6 py-3 uppercase text-sm tracking-wide whitespace-nowrap disabled:opacity-50"
+            className="store-button border border-ink bg-ink text-background whitespace-nowrap disabled:opacity-50"
           >
             {status === 'loading' ? 'Sending…' : 'Subscribe'}
           </button>
+          </div>
+          <p className="mt-2 text-xs text-muted">Occasional product updates. Unsubscribe at any time.</p>
         </form>
       </div>
       {message && (

@@ -2,6 +2,12 @@ const { z } = require('zod');
 const prisma = require('../../config/prismaClient');
 const asyncHandler = require('../../middleware/asyncHandler');
 const { ApiError } = require('../../middleware/errorHandler');
+const { deleteStoredMedia } = require('../../services/media.service');
+
+async function cleanupMedia(urls) {
+  const results = await Promise.allSettled([...new Set(urls.filter(Boolean))].map(deleteStoredMedia));
+  results.filter(result => result.status === 'rejected').forEach(result => console.error('[media] Cloudinary cleanup failed:', result.reason?.message));
+}
 
 const safeMediaUrl = z.string().max(2000).refine(value => !value || /^\/(?!\/)[^\\\s]*$/.test(value) || /^https?:\/\/[^\s]+$/i.test(value), 'Use a /path or http(s) URL.');
 
@@ -20,6 +26,7 @@ const productInputSchema = z.object({
   isPublished: z.coerce.boolean().optional(),
   isBestSeller: z.coerce.boolean().optional(),
   isNewArrival: z.coerce.boolean().optional(),
+  hasColorVariations: z.coerce.boolean().optional(),
   categoryIds: z.array(z.string()).optional(),
   collectionIds: z.array(z.string()).optional(),
   sortOrder: z.coerce.number().int().optional(),
@@ -29,19 +36,33 @@ const productInputSchema = z.object({
 // basic pagination — unlike the public endpoint this doesn't filter to
 // isPublished only.
 const listProducts = asyncHandler(async (req, res) => {
-  const { page, perPage, q, status } = z.object({ page: z.coerce.number().int().min(1).default(1), perPage: z.coerce.number().int().min(1).max(100).default(20), q: z.string().max(200).default(''), status: z.enum(['all', 'published', 'draft', 'archived']).default('all') }).parse(req.query);
+  const { page, perPage, q, status, sort } = z.object({ page: z.coerce.number().int().min(1).default(1), perPage: z.coerce.number().int().min(1).max(100).default(20), q: z.string().max(200).default(''), status: z.enum(['all', 'published', 'draft', 'archived']).default('all'), sort: z.enum(['newest', 'name_asc', 'name_desc', 'price_asc', 'price_desc', 'stock_asc', 'stock_desc']).default('newest') }).parse(req.query);
   const where = { deletedAt: status === 'archived' ? { not: null } : null, ...(status === 'published' ? { isPublished: true } : status === 'draft' ? { isPublished: false } : {}), ...(q ? { OR: [{ title: { contains: q } }, { sku: { contains: q } }] } : {}) };
+  const include = { categories: { include: { category: true } }, variations: { include: { inventory: true } }, inventory: true, media: { orderBy: { sortOrder: 'asc' }, take: 1 } };
 
-  const [items, total] = await Promise.all([
-    prisma.product.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * perPage,
-      take: perPage,
-      include: { categories: { include: { category: true } }, variations: { include: { inventory: true } }, inventory: true, media: { orderBy: { sortOrder: 'asc' }, take: 1 } },
-    }),
-    prisma.product.count({ where }),
-  ]);
+  let items;
+  let total;
+  if (sort === 'newest') {
+    [items, total] = await Promise.all([prisma.product.findMany({ where, orderBy: { createdAt: 'desc' }, skip: (page - 1) * perPage, take: perPage, include }), prisma.product.count({ where })]);
+  } else {
+    const allItems = await prisma.product.findMany({ where, include });
+    const price = product => {
+      const values = (product.hasColorVariations ? product.variations.map(variation => variation.priceMinor) : [product.priceMinor]).filter(value => value !== null && value !== undefined);
+      return values.length ? Math.min(...values) : null;
+    };
+    const stock = product => (product.hasColorVariations && product.variations.length ? product.variations.map(variation => variation.inventory).filter(Boolean) : [product.inventory].filter(Boolean)).reduce((sum, record) => sum + Math.max(0, record.quantityAvailable - record.quantityReserved), 0);
+    const direction = sort.endsWith('_desc') ? -1 : 1;
+    allItems.sort((a, b) => {
+      if (sort.startsWith('name')) return direction * a.title.localeCompare(b.title);
+      if (sort.startsWith('stock')) return direction * (stock(a) - stock(b));
+      const aPrice = price(a), bPrice = price(b);
+      if (aPrice === null) return 1;
+      if (bPrice === null) return -1;
+      return direction * (aPrice - bPrice);
+    });
+    total = allItems.length;
+    items = allItems.slice((page - 1) * perPage, page * perPage);
+  }
 
   res.json({ success: true, data: { data: items, meta: { page, perPage, total, totalPages: Math.ceil(total / perPage) } } });
 });
@@ -114,7 +135,7 @@ const archiveProduct = asyncHandler(async (req, res) => {
 const deleteProduct = asyncHandler(async (req, res) => {
   const existing = await prisma.product.findUnique({
     where: { id: req.params.id },
-    include: { _count: { select: { orderItems: true } }, variations: { select: { id: true } } },
+    include: { _count: { select: { orderItems: true } }, variations: { select: { id: true } }, media: { select: { url: true } }, videos: { select: { url: true, posterUrl: true } } },
   });
   if (!existing) throw new ApiError(404, 'Product not found.');
 
@@ -140,6 +161,7 @@ const deleteProduct = asyncHandler(async (req, res) => {
     await tx.productVariation.deleteMany({ where: { productId: existing.id } });
     await tx.product.delete({ where: { id: existing.id } });
   });
+  await cleanupMedia([...existing.media.map(item => item.url), ...existing.videos.flatMap(item => [item.url, item.posterUrl])]);
 
   res.json({ success: true, data: { permanentlyDeleted: true, message: 'Product permanently deleted.' } });
 });
@@ -205,9 +227,11 @@ const updateVariation = asyncHandler(async (req, res) => {
 const deleteVariation = asyncHandler(async (req, res) => {
   const existing = await prisma.productVariation.findUnique({ where: { id: req.params.variationId } });
   if (!existing || existing.productId !== req.params.id) throw new ApiError(404, 'Variation not found.');
+  const media = await prisma.productMedia.findMany({ where: { variationId: existing.id }, select: { url: true } });
 
   await prisma.inventory.deleteMany({ where: { variationId: existing.id } });
   await prisma.productVariation.delete({ where: { id: existing.id } });
+  await cleanupMedia(media.map(item => item.url));
   res.json({ success: true, data: { message: 'Variation deleted.' } });
 });
 

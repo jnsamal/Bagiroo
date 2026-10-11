@@ -1,6 +1,5 @@
 import { Navigate, useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { api } from '../../lib/api';
+import { useAuth } from '../../contexts/AuthContext';
 import LoadingSkeleton from '../shared/LoadingSkeleton';
 
 // Wraps any route that needs a logged-in user. Redirects to /login and
@@ -8,15 +7,11 @@ import LoadingSkeleton from '../shared/LoadingSkeleton';
 // they authenticate.
 export default function RequireAuth({ children, role }) {
   const location = useLocation();
-  const { data: me, isLoading, isError } = useQuery({
-    queryKey: ['me'],
-    queryFn: () => api.get('/auth/me'),
-    retry: false,
-  });
+  const { user, isLoading, isError, sessionExpired } = useAuth();
 
   if (isLoading) return <LoadingSkeleton className="h-64 m-6" />;
-  if (isError || !me) return <Navigate to="/login" state={{ from: location }} replace />;
-  if (role && me.user.role !== role) return <Navigate to="/" replace />;
+  if (isError || !user) return <Navigate to="/login" state={{ from: location, sessionExpired }} replace />;
+  if (role && user.role !== role) return <Navigate to="/" replace />;
 
   return children;
 }

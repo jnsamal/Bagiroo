@@ -32,12 +32,12 @@ export default function Shop() {
   }
 
   return (
-    <div className="max-w-screen-2xl mx-auto px-6 py-10">
-      <div className="bg-surface -mx-6 px-6 py-8 mb-10 text-center">
+    <div className="max-w-screen-2xl mx-auto px-5 sm:px-8 lg:px-12 py-10 md:py-16" data-scroll-reveal>
+      <div className="border-b border-border pb-8 mb-10">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <h1 className="text-3xl font-semibold">Collection</h1>
-          <Link to="/shop/categories" className="text-sm underline underline-offset-2 hover:text-primary transition-colors">
-            Browse by Category
+          <div><p className="mb-2 text-xs uppercase tracking-[.2em] text-muted">Bagiroo collection</p><h1 className="section-title">Shop all</h1></div>
+          <Link to="/shop/categories" className="text-sm underline underline-offset-4 hover:text-muted transition-colors">
+            Browse by category
           </Link>
         </div>
       </div>
@@ -54,7 +54,7 @@ export default function Shop() {
       {isError && <ErrorState message={error.message} />}
       {data && (
         <>
-          <p className="text-sm text-muted mb-6">Showing all {data.meta.total} results</p>
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted">{data.meta.total} {data.meta.total === 1 ? 'product' : 'products'}</p>{category && <button type="button" onClick={() => updateParam('category', '')} className="text-sm underline underline-offset-4">Clear category filter</button>}</div>
           {data.data.length ? <ProductGrid products={data.data} /> : <EmptyState />}
         </>
       )}

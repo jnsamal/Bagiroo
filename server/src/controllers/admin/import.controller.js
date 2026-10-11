@@ -3,7 +3,9 @@ const asyncHandler = require('../../middleware/asyncHandler');
 const { ApiError } = require('../../middleware/errorHandler');
 const { parseCsv } = require('../../utils/csv');
 
-// Expected CSV columns: title,slug,sku,priceMinor,categorySlug,isPublished
+// Expected CSV columns: title,slug,sku,price,categorySlug,isPublished.
+// price is entered in rupees; priceMinor remains accepted for backwards
+// compatibility with earlier templates.
 // Supports 50-200 products per the spec, with a dry-run preview mode and
 // a downloadable-shaped error report (returned as JSON; the client can
 // render/export it).
@@ -31,11 +33,15 @@ const bulkImport = asyncHandler(async (req, res) => {
         throw new Error(`Category "${row.categorySlug}" does not exist.`);
       }
 
+      const enteredPrice = row.price !== undefined && row.price !== '' ? Number(row.price) * 100 : row.priceMinor ? Number(row.priceMinor) : null;
+      const priceMinor = enteredPrice === null ? null : Math.round(enteredPrice);
+      if (priceMinor !== null && (!Number.isFinite(priceMinor) || priceMinor < 0)) throw new Error('Price must be a valid non-negative rupee amount.');
+
       const data = {
         title: row.title,
         slug: row.slug,
         sku: row.sku,
-        priceMinor: row.priceMinor ? Number(row.priceMinor) : null,
+        priceMinor,
         isPublished: row.isPublished ? row.isPublished.toLowerCase() === 'true' : false,
       };
 

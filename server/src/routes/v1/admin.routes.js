@@ -7,11 +7,10 @@ const productsController = require('../../controllers/admin/products.controller'
 const importController = require('../../controllers/admin/import.controller');
 const ordersController = require('../../controllers/admin/orders.controller');
 const returnsController = require('../../controllers/admin/returns.controller');
-const couponsController = require('../../controllers/admin/coupons.controller');
-const testimonialsController = require('../../controllers/admin/testimonials.controller');
 const settingsController = require('../../controllers/admin/settings.controller');
 const taxonomyController = require('../../controllers/admin/taxonomy.controller');
 const mediaController = require('../../controllers/admin/media.controller');
+const customersController = require('../../controllers/admin/customers.controller');
 
 const router = express.Router();
 
@@ -51,36 +50,23 @@ router.post(
 );
 
 // Categories & Collections
-router.get('/categories', taxonomyController.listCategories);
-router.post('/categories', auditLog('create', 'Category'), taxonomyController.createCategory);
-router.patch('/categories/:id', auditLog('update', 'Category'), taxonomyController.updateCategory);
-router.delete('/categories/:id', auditLog('delete', 'Category'), taxonomyController.deleteCategory);
-
 router.get('/collections', taxonomyController.listCollections);
-router.post('/collections', auditLog('create', 'Collection'), taxonomyController.createCollection);
-router.patch('/collections/:id', auditLog('update', 'Collection'), taxonomyController.updateCollection);
-router.delete('/collections/:id', auditLog('delete', 'Collection'), taxonomyController.deleteCollection);
 
 // Orders
 router.get('/orders', ordersController.listOrders);
 router.get('/orders/:id', ordersController.getOrder);
+router.get('/orders/:id/invoice', ordersController.downloadInvoice);
 router.patch('/orders/:id/status', auditLog('update-status', 'Order'), ordersController.updateOrderStatus);
+
+// Customers
+router.get('/customers', customersController.listCustomers);
+router.get('/customers/:id', customersController.getCustomer);
 
 // Returns
 router.get('/returns', returnsController.listReturns);
+router.get('/returns/settings', returnsController.getReturnSettings);
+router.patch('/returns/settings', auditLog('update', 'SiteSetting'), returnsController.updateReturnSettings);
 router.patch('/returns/:id', auditLog('decide', 'Return'), returnsController.decideReturn);
-
-// Coupons
-router.get('/coupons', couponsController.listCoupons);
-router.post('/coupons', auditLog('create', 'Coupon'), couponsController.createCoupon);
-router.patch('/coupons/:id', auditLog('update', 'Coupon'), couponsController.updateCoupon);
-router.delete('/coupons/:id', auditLog('delete', 'Coupon'), couponsController.deleteCoupon);
-
-// Testimonials
-router.get('/testimonials', testimonialsController.listTestimonials);
-router.post('/testimonials', auditLog('create', 'Testimonial'), testimonialsController.createTestimonial);
-router.patch('/testimonials/:id', auditLog('update', 'Testimonial'), testimonialsController.updateTestimonial);
-router.delete('/testimonials/:id', auditLog('delete', 'Testimonial'), testimonialsController.deleteTestimonial);
 
 // Settings / content (WhatsApp number, social links, announcements)
 router.get('/settings', settingsController.getSettings);

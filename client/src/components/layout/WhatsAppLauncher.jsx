@@ -1,11 +1,12 @@
 // Number is configurable via /api/v1/settings/public (site_settings table),
 // never hard-coded, per the spec.
 export default function WhatsAppLauncher({ phoneNumber }) {
-  if (!phoneNumber) return null;
+  const internationalNumber = String(phoneNumber || '').replace(/\D/g, '');
+  if (!internationalNumber) return null;
 
   return (
     <a
-      href={`https://wa.me/${phoneNumber}`}
+      href={`https://wa.me/${internationalNumber}`}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat with us on WhatsApp"

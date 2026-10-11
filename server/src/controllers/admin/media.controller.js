@@ -2,15 +2,16 @@ const { z } = require('zod');
 const asyncHandler = require('../../middleware/asyncHandler');
 const { ApiError } = require('../../middleware/errorHandler');
 const prisma = require('../../config/prismaClient');
+const { storeUploadedFile, deleteStoredMedia } = require('../../services/media.service');
 
-// Returns a URL under /uploads (served statically by app.js). Optionally
-// attaches the uploaded file straight to a product as ProductMedia when
-// productId is supplied, per the spec's "Image URL or media ID mapping"
-// requirement for the admin media flow.
+// Stores new media using the configured provider (Cloudinary in production,
+// local disk as a development/legacy fallback) and optionally attaches it to
+// a product immediately.
 const uploadMedia = asyncHandler(async (req, res) => {
   if (!req.file) throw new ApiError(400, 'No file uploaded.');
 
-  const url = `/uploads/${req.file.filename}`;
+  const stored = await storeUploadedFile(req.file);
+  const { url } = stored;
 
   if (req.body.productId) {
     const variationId = req.body.variationId || null;
@@ -22,12 +23,13 @@ const uploadMedia = asyncHandler(async (req, res) => {
     return res.status(201).json({ success: true, data: media });
   }
 
-  res.status(201).json({ success: true, data: { url, filename: req.file.filename } });
+  res.status(201).json({ success: true, data: stored });
 });
 
 const deleteMedia = asyncHandler(async (req, res) => {
   const existing = await prisma.productMedia.findUnique({ where: { id: req.params.id } });
   if (!existing) throw new ApiError(404, 'Image not found.');
+  await deleteStoredMedia(existing.url);
   await prisma.productMedia.delete({ where: { id: req.params.id } });
   res.json({ success: true, data: { message: 'Image removed.' } });
 });

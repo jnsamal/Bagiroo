@@ -17,9 +17,8 @@ export default function CollectionDetail() {
   if (isError) return <ErrorState message={error.message} />;
 
   return (
-    <div className="max-w-screen-2xl mx-auto px-6 py-10">
-      <h1 className="text-3xl font-semibold mb-2">{data.name}</h1>
-      {data.description && <p className="text-muted mb-8">{data.description}</p>}
+    <div className="store-section !max-w-none" data-scroll-reveal>
+      <div className="mb-10 border-b border-border pb-8"><p className="mb-2 text-xs uppercase tracking-[.2em] text-muted">Collection</p><h1 className="section-title">{data.name}</h1>{data.description && <p className="mt-3 max-w-2xl text-muted">{data.description}</p>}<p className="mt-3 text-sm text-muted">{data.products.length} {data.products.length === 1 ? 'product' : 'products'}</p></div>
       {data.products.length ? <ProductGrid products={data.products} /> : <EmptyState message="No products assigned to this collection yet." />}
     </div>
   );

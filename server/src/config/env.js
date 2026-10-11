@@ -13,6 +13,10 @@ function required(key, fallback = undefined) {
 const nodeEnv = process.env.NODE_ENV || 'development';
 const cookieSameSite = (process.env.COOKIE_SAME_SITE || 'lax').toLowerCase();
 if (!['lax', 'strict', 'none'].includes(cookieSameSite)) throw new Error('COOKIE_SAME_SITE must be lax, strict, or none.');
+const emailProvider = (process.env.EMAIL_PROVIDER || 'console').toLowerCase();
+if (!['console', 'resend', 'brevo'].includes(emailProvider)) throw new Error('EMAIL_PROVIDER must be console, resend, or brevo.');
+const mediaStorage = (process.env.MEDIA_STORAGE || (process.env.CLOUDINARY_URL ? 'cloudinary' : 'local')).toLowerCase();
+if (!['local', 'cloudinary'].includes(mediaStorage)) throw new Error('MEDIA_STORAGE must be local or cloudinary.');
 
 const env = {
   nodeEnv,
@@ -27,10 +31,15 @@ const env = {
   cookieSecure: process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : nodeEnv === 'production',
 
   uploadDir: path.resolve(process.env.UPLOAD_DIR || path.join(__dirname, '../../../uploads')),
+  mediaStorage,
+  cloudinaryUrl: process.env.CLOUDINARY_URL,
 
-  smsProvider: process.env.SMS_PROVIDER || 'console',
-  smsApiKey: process.env.SMS_PROVIDER_API_KEY,
-  smsSenderId: process.env.SMS_PROVIDER_SENDER_ID || 'BAGCO',
+  emailProvider,
+  resendApiKey: process.env.RESEND_API_KEY,
+  brevoApiKey: process.env.BREVO_API_KEY,
+  emailFrom: process.env.EMAIL_FROM || 'Bagiroo & Co. <onboarding@resend.dev>',
+  emailFromAddress: process.env.EMAIL_FROM_ADDRESS,
+  emailFromName: process.env.EMAIL_FROM_NAME || 'Bagiroo & Co.',
   otpExpiresInMinutes: Number(process.env.OTP_EXPIRES_IN_MINUTES) || 5,
   otpLength: Number(process.env.OTP_LENGTH) || 6,
 
@@ -50,5 +59,12 @@ if (nodeEnv === 'production') {
   }
   if (cookieSameSite === 'none' && !env.cookieSecure) throw new Error('COOKIE_SECURE must be true when COOKIE_SAME_SITE=none.');
 }
+
+if (emailProvider === 'resend' && !env.resendApiKey) throw new Error('RESEND_API_KEY is required when EMAIL_PROVIDER=resend.');
+if (emailProvider === 'brevo') {
+  if (!env.brevoApiKey) throw new Error('BREVO_API_KEY is required when EMAIL_PROVIDER=brevo.');
+  if (!env.emailFromAddress) throw new Error('EMAIL_FROM_ADDRESS is required when EMAIL_PROVIDER=brevo.');
+}
+if (mediaStorage === 'cloudinary' && !env.cloudinaryUrl) throw new Error('CLOUDINARY_URL is required when MEDIA_STORAGE=cloudinary.');
 
 module.exports = env;

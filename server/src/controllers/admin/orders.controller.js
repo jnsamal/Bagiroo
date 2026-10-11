@@ -2,6 +2,7 @@ const { z } = require('zod');
 const prisma = require('../../config/prismaClient');
 const asyncHandler = require('../../middleware/asyncHandler');
 const { ApiError } = require('../../middleware/errorHandler');
+const { createInvoicePdf } = require('../../services/invoice.service');
 
 const listOrders = asyncHandler(async (req, res) => {
   const { status, q } = req.query;
@@ -42,4 +43,27 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   res.json({ success: true, data: order });
 });
 
-module.exports = { listOrders, getOrder, updateOrderStatus };
+const downloadInvoice = asyncHandler(async (req, res) => {
+  const order = await prisma.order.findUnique({
+    where: { id: req.params.id },
+    include: {
+      items: { include: { variation: true } },
+      addresses: true,
+      payments: true,
+      user: { select: { name: true, email: true } },
+    },
+  });
+  if (!order) throw new ApiError(404, 'Order not found.');
+
+  const pdf = createInvoicePdf(order);
+  const filename = `Bagiroo-Invoice-${order.orderNumber.replace(/[^a-z0-9_-]/gi, '-')}.pdf`;
+  res.set({
+    'Content-Type': 'application/pdf',
+    'Content-Disposition': `attachment; filename="${filename}"`,
+    'Content-Length': pdf.length,
+    'Cache-Control': 'private, no-store',
+  });
+  res.send(pdf);
+});
+
+module.exports = { listOrders, getOrder, updateOrderStatus, downloadInvoice };

@@ -1,53 +1,51 @@
-import { Routes, Route } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
+import { Navigate, Routes, Route } from 'react-router-dom';
 import StorefrontLayout from './components/layout/StorefrontLayout';
 import RequireAuth from './components/auth/RequireAuth';
-import AccountLayout from './components/account/AccountLayout';
-import AdminLayout from './components/admin/AdminLayout';
+import AdminRoute from './components/auth/AdminRoute';
 
-import Home from './pages/Home';
-import Shop from './pages/Shop';
-import ShopByCategory from './pages/ShopByCategory';
-import CategoryArchive from './pages/CategoryArchive';
-import NewArrivals from './pages/NewArrivals';
-import BestSellers from './pages/BestSellers';
-import Collections from './pages/Collections';
-import CollectionDetail from './pages/CollectionDetail';
-import Gifting from './pages/Gifting';
-import ShopByVideo from './pages/ShopByVideo';
-import StoreLocator from './pages/StoreLocator';
-import SearchResults from './pages/SearchResults';
-import ProductDetail from './pages/ProductDetail';
-import Cart from './pages/Cart';
-import Checkout from './pages/Checkout';
-import OrderConfirmation from './pages/OrderConfirmation';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import AccountDashboard from './pages/AccountDashboard';
-import AccountOrders from './pages/AccountOrders';
-import AccountOrderDetail from './pages/AccountOrderDetail';
-import AccountAddresses from './pages/AccountAddresses';
-import AccountSecurity from './pages/AccountSecurity';
-import AccountDetails from './pages/AccountDetails';
-import AccountWishlist from './pages/AccountWishlist';
-import AccountSupport from './pages/AccountSupport';
-import NotFound from './pages/NotFound';
-
-import AdminDashboard from './pages/admin/AdminDashboard';
-import AdminProducts from './pages/admin/AdminProducts';
-import AdminProductForm from './pages/admin/AdminProductForm';
-import AdminProductImport from './pages/admin/AdminProductImport';
-import AdminOrders from './pages/admin/AdminOrders';
-import AdminOrderDetail from './pages/admin/AdminOrderDetail';
-import AdminReturns from './pages/admin/AdminReturns';
-import AdminCoupons from './pages/admin/AdminCoupons';
-import AdminTestimonials from './pages/admin/AdminTestimonials';
-import AdminSettings from './pages/admin/AdminSettings';
-import AdminLogin from './pages/admin/AdminLogin';
-import AdminWebsite from './pages/admin/AdminWebsite';
-import AdminContent from './pages/admin/AdminContent';
-import AdminSecurity from './pages/admin/AdminSecurity';
-import ContentPage from './pages/ContentPage';
-import Contact from './pages/Contact';
+const AccountLayout = lazy(() => import('./components/account/AccountLayout'));
+const AdminLayout = lazy(() => import('./components/admin/AdminLayout'));
+const Home = lazy(() => import('./pages/Home'));
+const Shop = lazy(() => import('./pages/Shop'));
+const ShopByCategory = lazy(() => import('./pages/ShopByCategory'));
+const CategoryArchive = lazy(() => import('./pages/CategoryArchive'));
+const NewArrivals = lazy(() => import('./pages/NewArrivals'));
+const BestSellers = lazy(() => import('./pages/BestSellers'));
+const Collections = lazy(() => import('./pages/Collections'));
+const CollectionDetail = lazy(() => import('./pages/CollectionDetail'));
+const Gifting = lazy(() => import('./pages/Gifting'));
+const ShopByVideo = lazy(() => import('./pages/ShopByVideo'));
+const SearchResults = lazy(() => import('./pages/SearchResults'));
+const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+const Cart = lazy(() => import('./pages/Cart'));
+const Checkout = lazy(() => import('./pages/Checkout'));
+const OrderConfirmation = lazy(() => import('./pages/OrderConfirmation'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const AccountDashboard = lazy(() => import('./pages/AccountDashboard'));
+const AccountOrders = lazy(() => import('./pages/AccountOrders'));
+const AccountOrderDetail = lazy(() => import('./pages/AccountOrderDetail'));
+const AccountAddresses = lazy(() => import('./pages/AccountAddresses'));
+const AccountSecurity = lazy(() => import('./pages/AccountSecurity'));
+const AccountDetails = lazy(() => import('./pages/AccountDetails'));
+const AccountWishlist = lazy(() => import('./pages/AccountWishlist'));
+const AccountSupport = lazy(() => import('./pages/AccountSupport'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const AdminProducts = lazy(() => import('./pages/admin/AdminProducts'));
+const AdminProductForm = lazy(() => import('./pages/admin/AdminProductForm'));
+const AdminProductImport = lazy(() => import('./pages/admin/AdminProductImport'));
+const AdminOrders = lazy(() => import('./pages/admin/AdminOrders'));
+const AdminOrderDetail = lazy(() => import('./pages/admin/AdminOrderDetail'));
+const AdminReturns = lazy(() => import('./pages/admin/AdminReturns'));
+const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
+const AdminWebsite = lazy(() => import('./pages/admin/AdminWebsite'));
+const AdminContent = lazy(() => import('./pages/admin/AdminContent'));
+const AdminCustomers = lazy(() => import('./pages/admin/AdminCustomers'));
+const AdminCustomerDetail = lazy(() => import('./pages/admin/AdminCustomerDetail'));
+const ContentPage = lazy(() => import('./pages/ContentPage'));
+const Contact = lazy(() => import('./pages/Contact'));
 
 // Small helper so every /account/* leaf route doesn't repeat the same
 // RequireAuth + AccountLayout wrapping.
@@ -61,7 +59,8 @@ function protectedAccountPage(element) {
 
 export default function App() {
   return (
-    <Routes>
+    <Suspense fallback={<div role="status" className="flex min-h-[45vh] items-center justify-center text-sm text-muted">Loading page…</div>}>
+      <Routes>
       {/* Storefront: single shared layout (header/footer/announcement bar)
           via <Outlet/>, per the standard React Router layout-route pattern. */}
       <Route element={<StorefrontLayout />}>
@@ -104,8 +103,8 @@ export default function App() {
 
       {/* Admin has its own layout/shell, deliberately outside the
           storefront header/footer/announcement bar. */}
-      <Route path="/admin/login" element={<AdminLogin />} />
-      <Route path="/admin" element={<AdminLayout />}>
+      <Route path="/admin/login" element={<Navigate to="/login" replace />} />
+      <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
         <Route index element={<AdminDashboard />} />
         <Route path="products" element={<AdminProducts />} />
         <Route path="products/new" element={<AdminProductForm />} />
@@ -113,14 +112,17 @@ export default function App() {
         <Route path="products/:id/edit" element={<AdminProductForm />} />
         <Route path="orders" element={<AdminOrders />} />
         <Route path="orders/:id" element={<AdminOrderDetail />} />
+        <Route path="customers" element={<AdminCustomers />} />
+        <Route path="customers/:id" element={<AdminCustomerDetail />} />
         <Route path="returns" element={<AdminReturns />} />
         <Route path="coupons" element={<AdminContent resource="coupons" />} />
         <Route path="testimonials" element={<AdminContent resource="testimonials" />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route path="website" element={<AdminWebsite />} />
         <Route path="content/:resource" element={<AdminContent />} />
-        <Route path="security" element={<AdminSecurity />} />
+        <Route path="security" element={<Navigate to="/admin/settings" replace />} />
       </Route>
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 }

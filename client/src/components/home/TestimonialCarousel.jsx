@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { resolveMediaUrl } from '../../lib/media';
 
 export default function TestimonialCarousel({ testimonials = [] }) {
@@ -30,16 +30,48 @@ export default function TestimonialCarousel({ testimonials = [] }) {
       <div className="mx-auto flex items-center gap-3 sm:gap-6">
         <button type="button" onClick={() => go(-1)} disabled={testimonials.length <= visibleCount} aria-label="Previous customer stories" className="shrink-0 w-10 h-10 border border-border rounded-full disabled:opacity-30">‹</button>
         <div key={visibleStories.map(story => story.id).join('-')} className={`testimonial-slide ${direction < 0 ? 'from-left' : 'from-right'} flex-1 min-w-0 grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch`}>
-          {visibleStories.map(story => <article key={story.id} className="min-w-0 min-h-64 border border-border p-6 sm:p-8 flex flex-col justify-center">
-            {story.avatarUrl && <img src={resolveMediaUrl(story.avatarUrl)} alt="" className="w-12 h-12 object-cover rounded-full mx-auto mb-5" />}
-            <p className="text-sm text-muted">{story.quote}{story.isPlaceholder && <span className="block mt-2 text-xs text-muted/70">(placeholder content)</span>}</p>
-            <p className="mt-5 font-medium">{story.authorName}</p>
-            <p className="text-yellow-600" aria-label={`${story.rating} out of 5 stars`}>{'★'.repeat(story.rating)}</p>
-          </article>)}
+          {visibleStories.map(story => <StoryCard key={story.id} story={story} />)}
         </div>
         <button type="button" onClick={() => go(1)} disabled={testimonials.length <= visibleCount} aria-label="Next customer stories" className="shrink-0 w-10 h-10 border border-border rounded-full disabled:opacity-30">›</button>
       </div>
       {testimonials.length > visibleCount && <div className="flex justify-center gap-2 mt-6" aria-label="Choose customer story">{testimonials.map((testimonial, storyIndex) => <button key={testimonial.id} type="button" onClick={() => { setDirection(storyIndex < index ? -1 : 1); setIndex(storyIndex); }} aria-label={`Show customer story ${storyIndex + 1}`} aria-current={storyIndex === index ? 'true' : undefined} className={`w-2 h-2 rounded-full transition-colors ${storyIndex === index ? 'bg-ink' : 'bg-border'}`} />)}</div>}
     </section>
   );
+}
+
+function StoryCard({ story }) {
+  const quoteRef = useRef(null);
+  const [expanded, setExpanded] = useState(false);
+  const [canExpand, setCanExpand] = useState(false);
+
+  useLayoutEffect(() => {
+    const quote = quoteRef.current;
+    if (!quote) return undefined;
+    const measure = () => setCanExpand(quote.scrollHeight > quote.clientHeight + 2);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(quote);
+    return () => observer.disconnect();
+  }, [story.quote]);
+
+  return <article className="flex h-[27rem] min-w-0 flex-col border border-border bg-background p-6 sm:h-[29rem] sm:p-8">
+    <div className="mx-auto mb-5 flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ink text-sm font-medium uppercase text-background">
+      {story.avatarUrl
+        ? <img src={resolveMediaUrl(story.avatarUrl)} alt="" className="h-full w-full object-cover" />
+        : <span aria-hidden="true">{story.authorName?.charAt(0) || 'B'}</span>}
+    </div>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div ref={quoteRef} className={`min-h-0 flex-1 text-sm leading-relaxed text-muted ${expanded ? 'overflow-y-auto pr-2' : 'line-clamp-[8] overflow-hidden'}`}>
+        {story.quote}
+        {story.isPlaceholder && <span className="block mt-2 text-xs text-muted/70">(placeholder content)</span>}
+      </div>
+      {(canExpand || expanded) && <button type="button" onClick={() => setExpanded(current => !current)} aria-expanded={expanded} className="mx-auto mt-3 shrink-0 border border-ink px-4 py-2 text-xs font-medium uppercase tracking-wider transition-colors duration-200 hover:bg-ink hover:text-background focus-visible:bg-ink focus-visible:text-background focus-visible:outline-none">
+        {expanded ? 'Less' : 'More'}
+      </button>}
+    </div>
+    <div className="mt-5 shrink-0 border-t border-border pt-4">
+      <p className="font-medium">{story.authorName}</p>
+      <p className="mt-1 text-yellow-600" aria-label={`${story.rating} out of 5 stars`}>{'★'.repeat(story.rating)}</p>
+    </div>
+  </article>;
 }

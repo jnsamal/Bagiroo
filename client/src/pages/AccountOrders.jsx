@@ -37,12 +37,14 @@ export default function AccountOrders() {
 
   return (
     <div>
+      <h1 className="account-heading">My orders</h1>
       <div className="flex gap-2 mb-8">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-4 py-2 text-sm border ${
+            aria-pressed={tab === t.key}
+            className={`min-h-11 px-4 py-2 text-sm border transition-colors ${
               tab === t.key ? 'bg-ink text-background border-ink' : 'border-border text-muted'
             }`}
           >

@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import LoadingSkeleton from '../components/shared/LoadingSkeleton';
 import ErrorState from '../components/shared/ErrorState';
 import PlaceholderImage from '../components/shared/PlaceholderImage';
-import { resolveMediaUrl } from '../lib/media';
+import OptimizedImage from '../components/shared/OptimizedImage';
 
 export default function ShopByCategory() {
   const { data, isLoading, isError, error } = useQuery({
@@ -18,10 +18,10 @@ export default function ShopByCategory() {
   const categories = data || [];
 
   return (
-    <div className="max-w-screen-2xl mx-auto px-6 py-10">
-      <div className="bg-surface -mx-6 px-6 py-8 mb-10 text-center">
-        <h1 className="text-3xl font-semibold">Shop by Category</h1>
-        <p className="text-muted mt-2">Explore our collections by category</p>
+    <div className="store-section !max-w-none" data-scroll-reveal>
+      <div className="mb-10 border-b border-border pb-8">
+        <p className="mb-2 text-xs uppercase tracking-[.2em] text-muted">Find your shape</p><h1 className="section-title">Shop by category</h1>
+        <p className="text-muted mt-3">Explore the collection by silhouette.</p>
       </div>
 
       {categories.length === 0 ? (
@@ -32,12 +32,14 @@ export default function ShopByCategory() {
             <Link
               key={category.slug}
               to={`/shop/category/${category.slug}`}
-              className="group block bg-white rounded-lg overflow-hidden border border-border hover:border-primary transition-colors"
+              className="category-card group block overflow-hidden"
             >
-              <div className="aspect-square relative bg-gray-50 overflow-hidden">
+              <div className="aspect-[4/5] relative bg-surface overflow-hidden">
                 {category.imageUrl ? (
-                  <img
-                    src={resolveMediaUrl(category.imageUrl)}
+                  <OptimizedImage
+                    src={category.imageUrl}
+                    widths={[320, 480, 640, 800]}
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                     alt={category.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
@@ -45,8 +47,8 @@ export default function ShopByCategory() {
                   <PlaceholderImage className="w-full h-full" />
                 )}
               </div>
-              <div className="p-4 text-center">
-                <h3 className="font-medium group-hover:text-primary transition-colors">
+              <div className="pt-3">
+                <h3 className="text-sm font-medium">
                   {category.name}
                 </h3>
               </div>

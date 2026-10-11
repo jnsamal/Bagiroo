@@ -9,17 +9,21 @@ import ErrorState from '../components/shared/ErrorState';
 
 const emptyAddress = { fullName: '', phone: '', line1: '', line2: '', city: '', state: '', postalCode: '', country: 'IN' };
 
+function Field({ label, ...props }) {
+  return <label className="block"><span className="mb-2 block text-xs uppercase tracking-wider text-muted">{label}</span><input {...props} className="form-field" /></label>;
+}
+
 function AddressFields({ value, onChange }) {
   return <div className="space-y-4">
-    <input required placeholder="Full name" value={value.fullName} onChange={(e) => onChange('fullName', e.target.value)} className="w-full border border-border px-3 py-2" />
-    <input required placeholder="Phone" value={value.phone} onChange={(e) => onChange('phone', e.target.value)} className="w-full border border-border px-3 py-2" />
-    <input required placeholder="Address line 1" value={value.line1} onChange={(e) => onChange('line1', e.target.value)} className="w-full border border-border px-3 py-2" />
-    <input placeholder="Address line 2 (optional)" value={value.line2 || ''} onChange={(e) => onChange('line2', e.target.value)} className="w-full border border-border px-3 py-2" />
+    <Field required autoComplete="name" label="Full name" value={value.fullName} onChange={(e) => onChange('fullName', e.target.value)} />
+    <Field required type="tel" autoComplete="tel" label="Phone" value={value.phone} onChange={(e) => onChange('phone', e.target.value)} />
+    <Field required autoComplete="address-line1" label="Address line 1" value={value.line1} onChange={(e) => onChange('line1', e.target.value)} />
+    <Field autoComplete="address-line2" label="Address line 2 (optional)" value={value.line2 || ''} onChange={(e) => onChange('line2', e.target.value)} />
     <div className="grid grid-cols-2 gap-4">
-      <input required placeholder="City" value={value.city} onChange={(e) => onChange('city', e.target.value)} className="min-w-0 border border-border px-3 py-2" />
-      <input required placeholder="State" value={value.state} onChange={(e) => onChange('state', e.target.value)} className="min-w-0 border border-border px-3 py-2" />
+      <Field required autoComplete="address-level2" label="City" value={value.city} onChange={(e) => onChange('city', e.target.value)} />
+      <Field required autoComplete="address-level1" label="State" value={value.state} onChange={(e) => onChange('state', e.target.value)} />
     </div>
-    <input required placeholder="Postal code" value={value.postalCode} onChange={(e) => onChange('postalCode', e.target.value)} className="w-full border border-border px-3 py-2" />
+    <Field required inputMode="numeric" autoComplete="postal-code" label="Postal code" value={value.postalCode} onChange={(e) => onChange('postalCode', e.target.value)} />
   </div>;
 }
 
@@ -173,28 +177,28 @@ export default function Checkout() {
   }
 
   return (
-    <div className="max-w-screen-lg mx-auto px-6 py-10">
-      <h1 className="text-3xl font-semibold mb-8">Checkout</h1>
+    <div className="max-w-screen-xl mx-auto px-5 sm:px-8 py-12 md:py-16" data-scroll-reveal>
+      <div className="mb-10 border-b border-border pb-5"><p className="mb-2 text-xs uppercase tracking-[.2em] text-muted">Secure checkout</p><h1 className="section-title">Checkout</h1></div>
 
-      <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 md:grid-cols-3 gap-10">
-        <div className="md:col-span-2 space-y-8">
+      <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-10 lg:gap-14">
+        <div className="space-y-10">
           {!me && (
             <fieldset className="space-y-4">
               <legend className="font-medium mb-2">Contact information</legend>
-              <input
+              <Field
                 type="email"
                 required
-                placeholder="Email address"
+                autoComplete="email"
+                label="Email address"
                 value={guestEmail}
                 onChange={(e) => setGuestEmail(e.target.value)}
-                className="w-full border border-border px-3 py-2"
               />
-              <input
+              <Field
                 type="tel"
-                placeholder="Phone (optional)"
+                autoComplete="tel"
+                label="Phone (optional)"
                 value={guestPhone}
                 onChange={(e) => setGuestPhone(e.target.value)}
-                className="w-full border border-border px-3 py-2"
               />
             </fieldset>
           )}
@@ -224,15 +228,16 @@ export default function Checkout() {
           <button
             type="submit"
             disabled={isPlacingOrder || (Boolean(me) && !selectedAddressId)}
-            className="w-full bg-ink text-background py-4 uppercase text-sm tracking-wide disabled:opacity-50"
+            className="store-button w-full border border-ink bg-ink text-background disabled:opacity-50"
           >
             {isPlacingOrder ? 'Processing…' : me && !selectedAddressId ? 'Save an address to continue' : 'Place order & pay'}
           </button>
         </div>
 
-        <div>
+        <aside className="lg:sticky lg:top-28 lg:self-start">
           <OrderSummary cart={cart} />
-        </div>
+          <p className="mt-4 text-center text-xs leading-relaxed text-muted">Your payment details are handled securely by our payment provider.</p>
+        </aside>
       </form>
     </div>
   );

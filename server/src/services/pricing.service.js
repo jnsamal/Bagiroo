@@ -2,7 +2,9 @@ const { validateCoupon } = require('./coupon.service');
 const { getWebsite } = require('./website.service');
 
 function lineItemPrice(item) {
-  return item.variation?.priceMinor ?? item.product.priceMinor;
+  return item.product.hasColorVariations
+    ? (item.variation?.priceMinor ?? item.product.priceMinor)
+    : item.product.priceMinor;
 }
 
 // Computes subtotal/discount/shipping/tax/total for a cart, tolerating an

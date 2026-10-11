@@ -1,10 +1,12 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { formatPrice } from '../lib/money';
 import LoadingSkeleton from '../components/shared/LoadingSkeleton';
 
 export default function AccountDashboard() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { data: me, isLoading: isLoadingProfile } = useQuery({
     queryKey: ['me'],
     queryFn: () => api.get('/auth/me'),
@@ -21,7 +23,7 @@ export default function AccountDashboard() {
   const profileItems = [
     { label: 'Name', complete: Boolean(me?.user?.name?.trim()), to: '/account/details' },
     { label: 'Email address', complete: Boolean(me?.user?.email?.trim()), to: '/account/details' },
-    { label: 'Mobile number', complete: Boolean(me?.user?.phone?.trim()), to: '/account/security' },
+    { label: 'Mobile number', complete: Boolean(me?.user?.phone?.trim()), to: '/account/details' },
     { label: 'Delivery address', complete: Boolean(addresses?.length), to: '/account/addresses' },
   ];
   const completedItems = profileItems.filter(item => item.complete).length;
@@ -30,6 +32,7 @@ export default function AccountDashboard() {
 
   return (
     <div>
+      {location.state?.adminAccessDenied && <div role="alert" className="mb-8 flex items-start justify-between gap-4 border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"><div><p className="font-semibold">Administrator access is required</p><p className="mt-1">This account does not have permission to open the admin panel.</p></div><button type="button" aria-label="Dismiss message" onClick={() => navigate(location.pathname, { replace: true, state: null })} className="shrink-0 text-xl leading-none hover:text-black">×</button></div>}
       {!isLoadingProfile && !isLoadingAddresses && completion < 100 && <section className="mb-10 border border-border p-6 md:p-8" aria-labelledby="profile-completion-title">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>

@@ -9,3 +9,16 @@ export function formatPrice(minor, currency = 'INR') {
     maximumFractionDigits: 2,
   }).format(value);
 }
+
+export function minorToMajorInput(minor) {
+  if (minor === null || minor === undefined || minor === '') return '';
+  const value = Number(minor) / 100;
+  return Number.isFinite(value) ? String(value) : '';
+}
+
+export function majorInputToMinor(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount < 0) return Number.NaN;
+  return Math.round((amount + Number.EPSILON) * 100);
+}

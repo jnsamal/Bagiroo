@@ -3,6 +3,8 @@ const asyncHandler = require('../middleware/asyncHandler');
 const { ApiError } = require('../middleware/errorHandler');
 const prisma = require('../config/prismaClient');
 
+const RETURNS_ENABLED_KEY = 'returns_enabled';
+
 const createReturnSchema = z.object({
   orderId: z.string().min(1),
   reason: z.string().min(1).max(500),
@@ -12,6 +14,11 @@ const createReturnSchema = z.object({
 // Returns foundation (Phase 4 scope per the brief) — request + status
 // tracking exists; approval/refund workflow is admin-side (Phase 5).
 const createReturn = asyncHandler(async (req, res) => {
+  const returnSetting = await prisma.siteSetting.findUnique({ where: { key: RETURNS_ENABLED_KEY } });
+  if (returnSetting?.value === 'false') {
+    throw new ApiError(403, 'Returns are temporarily unavailable. Please check back later.');
+  }
+
   const body = createReturnSchema.parse(req.body);
 
   const order = await prisma.order.findFirst({

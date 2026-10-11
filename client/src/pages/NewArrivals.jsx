@@ -15,8 +15,8 @@ export default function NewArrivals() {
   if (isError) return <ErrorState message={error.message} />;
 
   return (
-    <div className="max-w-screen-2xl mx-auto px-6 py-10">
-      <h1 className="text-3xl font-semibold mb-8">New Arrivals</h1>
+    <div className="store-section !max-w-none" data-scroll-reveal>
+      <div className="mb-10 border-b border-border pb-8"><p className="mb-2 text-xs uppercase tracking-[.2em] text-muted">Latest edit</p><h1 className="section-title">New arrivals</h1><p className="mt-3 text-sm text-muted">{data.data.length} {data.data.length === 1 ? 'product' : 'products'}</p></div>
       {data.data.length ? <ProductGrid products={data.data} /> : <EmptyState />}
     </div>
   );

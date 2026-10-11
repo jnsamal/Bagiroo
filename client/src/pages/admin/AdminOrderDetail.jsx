@@ -2,6 +2,8 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { formatPrice } from '../../lib/money';
+import AdminInvoiceButton from '../../components/admin/AdminInvoiceButton';
+import AdminStatusBadge, { adminStatusLabel } from '../../components/admin/AdminStatusBadge';
 
 export default function AdminOrderDetail() {
   const { id } = useParams();
@@ -14,8 +16,7 @@ export default function AdminOrderDetail() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-1">Order #{data.orderNumber}</h1>
-      <p className="text-sm text-gray-500 mb-8">{data.status}</p>
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4"><div><p className="mb-2 text-xs uppercase tracking-[.2em] text-muted">Order details</p><h1 className="admin-page-title mb-3">Order #{data.orderNumber}</h1><AdminStatusBadge status={data.status} /></div><AdminInvoiceButton order={data} /></div>
 
       <table className="w-full text-sm border border-gray-200 mb-8">
         <tbody className="divide-y divide-gray-100">
@@ -41,7 +42,7 @@ export default function AdminOrderDetail() {
         <p className="font-medium mb-2 text-sm">Status history</p>
         <ul className="text-sm text-gray-500 space-y-1">
           {data.statusHistory.map((h) => (
-            <li key={h.id}>{new Date(h.createdAt).toLocaleString()} — {h.status}{h.note ? `: ${h.note}` : ''}</li>
+            <li key={h.id}>{new Date(h.createdAt).toLocaleString()} — {adminStatusLabel(h.status)}{h.note ? `: ${h.note}` : ''}</li>
           ))}
         </ul>
       </div>

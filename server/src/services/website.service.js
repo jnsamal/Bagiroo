@@ -1,13 +1,14 @@
 const { z } = require('zod');
 const prisma = require('../config/prismaClient');
+const { deleteStoredMedia } = require('./media.service');
 const navigation = [
-  { key: 'new-arrivals', label: 'New Arrivals', to: '/new-arrivals', megaMenu: true, visible: true },
-  { key: 'best-sellers', label: 'Best Sellers', to: '/best-sellers', megaMenu: true, visible: true },
-  { key: 'shop-by-category', label: 'Shop by Category', to: '/shop', megaMenu: true, visible: true },
-  { key: 'featured-collections', label: 'Featured Collections', to: '/collections/featured-collection', megaMenu: true, visible: true },
-  { key: 'gifting', label: 'Gifting', to: '/gifting', megaMenu: true, visible: true },
-  { key: 'shop-by-video', label: 'Shop by Video', to: '/shop-by-video', megaMenu: false, visible: true },
-  { key: 'store-locator', label: 'Store Locator', to: '/store-locator', megaMenu: false, visible: true },
+  { key: 'new-arrivals', label: 'New Arrivals', to: '/new-arrivals', megaMenu: true, visible: true, viewAllImageUrl: '' },
+  { key: 'best-sellers', label: 'Best Sellers', to: '/best-sellers', megaMenu: true, visible: true, viewAllImageUrl: '' },
+  { key: 'shop-by-category', label: 'Shop by Category', to: '/shop', megaMenu: true, visible: true, viewAllImageUrl: '' },
+  { key: 'featured-collections', label: 'Featured Collections', to: '/collections/featured-collection', megaMenu: true, visible: true, viewAllImageUrl: '' },
+  { key: 'gifting', label: 'Gifting', to: '/gifting', megaMenu: true, visible: true, viewAllImageUrl: '' },
+  { key: 'shop-by-video', label: 'Shop by Video', to: '/shop-by-video', megaMenu: false, visible: true, viewAllImageUrl: '' },
+  { key: 'store-locator', label: 'Store Locator', to: '/store-locator', megaMenu: false, visible: true, viewAllImageUrl: '' },
 ];
 const footerShopLinks = [
   { key: 'collection', label: 'Collection', to: '/shop', visible: true },
@@ -35,7 +36,8 @@ const fields = [
   ['metaDescription', 'Search description', 'textarea', 'Contemporary bags from Bagiroo & Co.', 'Brand'],
   ['heroTitle', 'Hero heading', 'text', 'Designed for every move', 'Homepage'],
   ['heroDescription', 'Hero description', 'textarea', 'Considered silhouettes, confident colour and room for the rhythm of your day.', 'Homepage'],
-  ['heroImage', 'Hero photograph', 'image', '/uploads/site/hero.png', 'Homepage'],
+  ['heroImage', 'Hero fallback photograph', 'image', '/uploads/site/hero.png', 'Homepage'],
+  ['heroSlides', 'Hero carousel media', 'hero-slides', [{ id: 'hero-default', type: 'image', url: '/uploads/site/hero.png', altText: 'Bagiroo collection' }], 'Homepage'],
   ['heroButtonLabel', 'Hero button label', 'text', 'Explore the collection', 'Homepage'],
   ['heroButtonUrl', 'Hero button destination', 'url', '/shop', 'Homepage'],
   ['heroOverlay', 'Hero dark overlay (%)', 'number', 40, 'Homepage', 0, 80],
@@ -55,10 +57,11 @@ const fields = [
   ['showInstagram', 'Show Instagram posts', 'boolean', true, 'Homepage sections'],
   ['showFeaturedCollection', 'Show featured collection', 'boolean', true, 'Homepage sections'],
   ['showNewsletter', 'Show newsletter', 'boolean', true, 'Homepage sections'],
-  ['uspText', 'Benefits (one per line)', 'textarea', 'Thoughtful design\nPremium finish\nEasy returns\nCustomer support', 'Homepage'],
+  ['uspTitle', 'Benefits section heading', 'text', 'Why shop with Bagiroo', 'Homepage'],
+  ['uspText', 'Benefit tiles (one per line)', 'textarea', 'Thoughtful design\nPremium finish\nEasy returns\nCustomer support', 'Homepage'],
   ['newsletterTitle', 'Newsletter heading', 'text', 'Join our world', 'Homepage'],
   ['newsletterDescription', 'Newsletter description', 'textarea', 'Product stories, new arrivals and considered edits, delivered occasionally.', 'Homepage'],
-  ['footerFollowLabel', 'Social section heading', 'text', 'Follow Bagiroo&Co.', 'Footer'],
+  ['footerFollowLabel', 'Social section heading', 'text', 'Follow Bagiroo & Co.', 'Footer'],
   ['footerDescription', 'Footer description', 'textarea', 'Contemporary bags designed for everyday movement.', 'Footer'],
   ['footerShopTitle', 'Shop column heading', 'text', 'Shop', 'Footer'],
   ['footerShopLinks', 'Shop links', 'link-list', footerShopLinks, 'Footer'],
@@ -86,8 +89,14 @@ const footerLinkSchema = z.object({
   to: safeUrl.refine(Boolean),
   visible: z.boolean(),
 }).strict();
+const heroSlideSchema = z.object({
+  id: z.string().min(1).max(100),
+  type: z.enum(['image', 'video']),
+  url: safeUrl.refine(Boolean, 'Choose an image or video for every hero slide.'),
+  altText: z.string().max(200),
+}).strict();
 const shape = Object.fromEntries(fields.map(([key, , type, , , min, max]) => [key,
-  type === 'navigation' ? z.array(z.object({ key: z.enum(navigation.map(item => item.key)), label: z.string().min(1).max(80), to: safeUrl.refine(Boolean), megaMenu: z.boolean(), visible: z.boolean() }).strict()).length(navigation.length).refine(items => new Set(items.map(item => item.key)).size === navigation.length, 'Each navigation item must appear once.') : type === 'link-list' ? z.array(footerLinkSchema).max(20).refine(items => new Set(items.map(item => item.key)).size === items.length, 'Each footer link must have a unique key.') : type === 'boolean' ? z.boolean() : type === 'number' ? z.number().min(min).max(max).refine(value => key === 'taxPercent' || Number.isInteger(value), 'Use a whole number.') : type === 'color' ? z.string().regex(/^#[0-9a-f]{6}$/i) : type === 'select' ? z.enum(min) : ['url', 'image'].includes(type) ? safeUrl : z.string().max(20000),
+  type === 'navigation' ? z.array(z.object({ key: z.enum(navigation.map(item => item.key)), label: z.string().min(1).max(80), to: safeUrl.refine(Boolean), megaMenu: z.boolean(), visible: z.boolean(), viewAllImageUrl: safeUrl.optional().default('') }).strict()).length(navigation.length).refine(items => new Set(items.map(item => item.key)).size === navigation.length, 'Each navigation item must appear once.') : type === 'link-list' ? z.array(footerLinkSchema).max(20).refine(items => new Set(items.map(item => item.key)).size === items.length, 'Each footer link must have a unique key.') : type === 'hero-slides' ? z.array(heroSlideSchema).min(1, 'Add at least one hero slide.').max(10) : type === 'boolean' ? z.boolean() : type === 'number' ? z.number().min(min).max(max).refine(value => key === 'taxPercent' || Number.isInteger(value), 'Use a whole number.') : type === 'color' ? z.string().regex(/^#[0-9a-f]{6}$/i) : type === 'select' ? z.enum(min) : ['url', 'image'].includes(type) ? safeUrl : z.string().max(20000),
 ]));
 const schema = z.object(shape).strict();
 const defaults = Object.fromEntries(fields.map(([key, , , value]) => [key, value]));
@@ -102,11 +111,35 @@ function normalizeNavigation(values) {
 async function getWebsite() {
   const setting = await prisma.siteSetting.findUnique({ where: { key: 'website_config' } });
   if (!setting) return defaults;
-  try { return normalizeNavigation(schema.parse({ ...defaults, ...JSON.parse(setting.value) })); } catch { return defaults; }
+  try {
+    const stored = JSON.parse(setting.value);
+    const merged = { ...defaults, ...stored };
+    if (!Array.isArray(stored.heroSlides)) merged.heroSlides = [{ id: 'hero-migrated', type: 'image', url: stored.heroImage || defaults.heroImage, altText: 'Bagiroo collection' }];
+    return normalizeNavigation(schema.parse(merged));
+  } catch { return defaults; }
 }
 async function saveWebsite(input) {
-  const values = normalizeNavigation(schema.parse({ ...await getWebsite(), ...schema.partial().parse(input) }));
+  const previous = await getWebsite();
+  const values = normalizeNavigation(schema.parse({ ...previous, ...schema.partial().parse(input) }));
   await prisma.siteSetting.upsert({ where: { key: 'website_config' }, create: { key: 'website_config', value: JSON.stringify(values) }, update: { value: JSON.stringify(values) } });
+  const replacedMedia = fields
+    .filter(([, , type]) => type === 'image')
+    .map(([key]) => previous[key] && previous[key] !== values[key] ? previous[key] : null)
+    .filter(Boolean);
+  previous.navigation.forEach(previousItem => {
+    const nextItem = values.navigation.find(item => item.key === previousItem.key);
+    if (previousItem.viewAllImageUrl && previousItem.viewAllImageUrl !== nextItem?.viewAllImageUrl) replacedMedia.push(previousItem.viewAllImageUrl);
+  });
+  const retainedMedia = new Set([
+    ...fields.filter(([, , type]) => type === 'image').map(([key]) => values[key]).filter(Boolean),
+    ...values.heroSlides.map(slide => slide.url),
+    ...values.navigation.map(item => item.viewAllImageUrl).filter(Boolean),
+  ]);
+  previous.heroSlides.forEach(slide => {
+    if (!values.heroSlides.some(next => next.url === slide.url) && !retainedMedia.has(slide.url)) replacedMedia.push(slide.url);
+  });
+  const cleanup = await Promise.allSettled([...new Set(replacedMedia.filter(url => !retainedMedia.has(url)))].map(deleteStoredMedia));
+  cleanup.filter(result => result.status === 'rejected').forEach(result => console.error('[media] Cloudinary cleanup failed:', result.reason?.message));
   return values;
 }
 module.exports = { fields, defaults, getWebsite, saveWebsite };

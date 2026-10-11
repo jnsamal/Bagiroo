@@ -6,6 +6,7 @@ import MegaMenu from './MegaMenu';
 import HeaderSearch from './HeaderSearch';
 import { useWebsite } from '../../lib/useWebsite';
 import { resolveMediaUrl } from '../../lib/media';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Nav items confirmed from the live site audit — no dropdown arrows,
 // Shop by Video / Store Locator link directly (no mega menu).
@@ -32,6 +33,8 @@ function HeaderIcon({ name }) {
 
 export default function MainHeader() {
   const website = useWebsite();
+  const { user } = useAuth();
+  const accountDestination = user?.role === 'ADMIN' || user?.role === 'STAFF' ? '/admin' : user ? '/account' : '/login';
   const NAV_ITEMS = website.navigation ? website.navigation.filter(item => item.visible) : DEFAULT_NAV_ITEMS;
   const [openKey, setOpenKey] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -70,9 +73,9 @@ export default function MainHeader() {
   const menuItemsFor = (key) => navigation?.[key] || [];
   const viewAllHrefFor = (_key, to) => to;
   return (
-    <header onMouseLeave={() => scheduleHover(null, 120)} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) openImmediately(null); }} className="store-header border-b border-border bg-background relative z-50 xl:z-30" onKeyDown={(e) => { if (e.key === 'Escape') { const trigger = e.currentTarget.querySelector(`[data-menu-trigger="${openKey}"]`); trigger?.focus(); openImmediately(null); setMobileOpen(false); } }}>
-      <div className="max-w-screen-2xl mx-auto flex items-center justify-between gap-4 px-5 sm:px-8 lg:px-12 py-5">
-        <button type="button" className="header-action xl:hidden" aria-label={mobileOpen ? 'Close menu' : 'Open menu'} aria-expanded={mobileOpen} aria-controls="mobile-navigation" onClick={() => { setSearchOpen(false); setMobileOpen(!mobileOpen); }}>
+    <header onMouseLeave={() => scheduleHover(null, 120)} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) openImmediately(null); }} className="store-header sticky top-0 border-b border-border bg-background/95 backdrop-blur-sm z-50 lg:z-30" onKeyDown={(e) => { if (e.key === 'Escape') { const trigger = e.currentTarget.querySelector(`[data-menu-trigger="${openKey}"]`); trigger?.focus(); openImmediately(null); setMobileOpen(false); } }}>
+      <div className="max-w-screen-2xl mx-auto flex items-center justify-between gap-3 px-5 sm:px-8 lg:px-8 2xl:px-12 py-4">
+        <button type="button" className="header-action lg:hidden" aria-label={mobileOpen ? 'Close menu' : 'Open menu'} aria-expanded={mobileOpen} aria-controls="mobile-navigation" onClick={() => { setSearchOpen(false); setMobileOpen(!mobileOpen); }}>
           <span className={`hamburger-icon ${mobileOpen ? 'is-open' : ''}`} aria-hidden="true"><span /><span /><span /></span>
         </button>
         <Link to="/" className="shrink-0" aria-label="Bagiroo and Co. home">
@@ -81,7 +84,7 @@ export default function MainHeader() {
 
         <nav
           aria-label="Main navigation"
-          className="hidden xl:flex items-center gap-5 2xl:gap-7 text-sm"
+          className="hidden lg:flex items-center gap-3 xl:gap-5 2xl:gap-7 text-xs xl:text-sm"
         >
           {NAV_ITEMS.map((item) => (
             <div
@@ -99,6 +102,7 @@ export default function MainHeader() {
                   <MegaMenu
                     items={menuItemsFor(item.key)}
                     viewAllHref={viewAllHrefFor(item.key, item.to)}
+                    viewAllImageUrl={item.viewAllImageUrl}
                     isLoading={menuLoading}
                     isError={menuError}
                     onRetry={retryMenu}
@@ -111,7 +115,7 @@ export default function MainHeader() {
         </nav>
 
         <div className="flex items-center gap-1 sm:gap-2">
-          <Link to="/account" className="header-action hidden sm:flex" aria-label="Account"><HeaderIcon name="account" /></Link>
+          <Link to={accountDestination} className="header-action hidden sm:flex" aria-label={user?.role === 'ADMIN' || user?.role === 'STAFF' ? 'Admin dashboard' : 'Account'}><HeaderIcon name="account" /></Link>
           <button ref={searchTrigger} type="button" className="header-action" aria-label="Search" aria-expanded={searchOpen} aria-controls={searchOpen ? 'header-search' : undefined} onClick={() => { openImmediately(null); setMobileOpen(false); setSearchOpen(!searchOpen); }}><HeaderIcon name="search" /></button>
           <Link to="/cart" aria-label={`Cart, ${cartCount} items`} className="header-action relative">
             <HeaderIcon name="cart" />
@@ -121,15 +125,15 @@ export default function MainHeader() {
           </Link>
         </div>
       </div>
-      <nav id="mobile-navigation" aria-label="Mobile navigation" aria-hidden={!mobileOpen} inert={!mobileOpen ? '' : undefined} className={`mobile-menu-panel ${mobileOpen ? 'is-open' : ''} absolute inset-x-0 top-full z-50 bg-background xl:hidden border-t border-b border-border px-5 py-4 max-h-[70dvh] overflow-y-auto overscroll-contain`}>
+      <nav id="mobile-navigation" aria-label="Mobile navigation" aria-hidden={!mobileOpen} inert={!mobileOpen ? '' : undefined} className={`mobile-menu-panel ${mobileOpen ? 'is-open' : ''} absolute inset-x-0 top-full z-50 bg-background lg:hidden border-t border-b border-border px-5 py-4 max-h-[70dvh] overflow-y-auto overscroll-contain`}>
         {NAV_ITEMS.map((item) => <div key={item.key}>
           <div className="flex items-center border-b border-border">
             <NavLink to={item.to} className="flex-1 block py-3 text-base">{item.label}</NavLink>
             {item.megaMenu && <button type="button" className="header-action" aria-label={`Toggle ${item.label} sublinks`} aria-expanded={openKey === item.key} aria-controls={`mobile-${item.key}`} onClick={() => setOpenKey(openKey === item.key ? null : item.key)}>{openKey === item.key ? '−' : '+'}</button>}
           </div>
-          {item.megaMenu && openKey === item.key && <div id={`mobile-${item.key}`}><MegaMenu items={menuItemsFor(item.key)} viewAllHref={item.to} isLoading={menuLoading} isError={menuError} onRetry={retryMenu} onNavigate={() => { setOpenKey(null); setMobileOpen(false); }} /></div>}
+          {item.megaMenu && openKey === item.key && <div id={`mobile-${item.key}`}><MegaMenu items={menuItemsFor(item.key)} viewAllHref={item.to} viewAllImageUrl={item.viewAllImageUrl} isLoading={menuLoading} isError={menuError} onRetry={retryMenu} onNavigate={() => { setOpenKey(null); setMobileOpen(false); }} /></div>}
         </div>)}
-        <Link to="/account" className="block py-3 text-base">My account</Link>
+        <Link to={accountDestination} className="block py-3 text-base">{user?.role === 'ADMIN' || user?.role === 'STAFF' ? 'Admin dashboard' : user ? 'My account' : 'Sign in'}</Link>
       </nav>
       <HeaderSearch open={searchOpen} initialQuery={location.state?.searchQuery || ''} onClose={closeSearch} />
     </header>

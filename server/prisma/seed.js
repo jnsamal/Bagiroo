@@ -255,12 +255,14 @@ async function main() {
     }
   }
 
-  console.log('[seed] Creating a dev admin user...');
-  await prisma.user.upsert({
-    where: { phone: '+910000000000' },
-    update: { role: 'ADMIN' },
-    create: { phone: '+910000000000', name: 'Bagiroo Admin', role: 'ADMIN' },
-  });
+  console.log('[seed] Creating dev admin users...');
+  for (const email of ['deepanshu151028@gmail.com', 'xcriminal063@gmail.com']) {
+    await prisma.user.upsert({
+      where: { email },
+      update: { name: 'Bagiroo Admin', role: 'ADMIN', isActive: true, deletedAt: null },
+      create: { email, name: 'Bagiroo Admin', role: 'ADMIN' },
+    });
+  }
 
   console.log('[seed] Creating a sample dev coupon (WELCOME10)...');
   await prisma.coupon.upsert({
@@ -305,8 +307,13 @@ async function main() {
   console.log('[seed] Setting WhatsApp number placeholder + social links...');
   await prisma.siteSetting.upsert({
     where: { key: 'whatsapp_business_number' },
+    update: { value: '+91 85955 26110' },
+    create: { key: 'whatsapp_business_number', value: '+91 85955 26110' },
+  });
+  await prisma.siteSetting.upsert({
+    where: { key: 'returns_enabled' },
     update: {},
-    create: { key: 'whatsapp_business_number', value: '' },
+    create: { key: 'returns_enabled', value: 'true' },
   });
 
   await prisma.socialLink.createMany({

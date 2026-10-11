@@ -13,7 +13,7 @@ export default function CouponInput({ appliedCoupon }) {
 
   return (
     <div className="mt-4">
-      <form
+      <label htmlFor="coupon-code" className="mb-2 block text-xs uppercase tracking-wider text-muted">Coupon code</label><form
         onSubmit={(e) => {
           e.preventDefault();
           mutation.mutate(code);
@@ -21,24 +21,24 @@ export default function CouponInput({ appliedCoupon }) {
         className="flex gap-2"
       >
         <input
-          value={code}
+          id="coupon-code" value={code}
           onChange={(e) => setCode(e.target.value)}
           placeholder="Coupon code"
-          className="border border-border px-3 py-2 text-sm flex-1"
+          className="form-field flex-1"
         />
-        <button type="submit" className="border border-ink px-4 py-2 text-sm uppercase">
-          Apply
+        <button type="submit" disabled={mutation.isPending || !code.trim()} className="store-button border border-ink !px-4 disabled:opacity-40">
+          {mutation.isPending ? 'Applying…' : 'Apply'}
         </button>
       </form>
       {appliedCoupon && (
         <p className="text-sm text-green-700 mt-2">
           "{appliedCoupon.code}" applied —{' '}
-          <button onClick={() => mutation.mutate(null)} className="underline">
+          <button type="button" disabled={mutation.isPending} onClick={() => mutation.mutate(null)} className="underline underline-offset-4 disabled:opacity-50">
             remove
           </button>
         </p>
       )}
-      {mutation.isError && <p className="text-sm text-red-700 mt-2">{mutation.error.message}</p>}
+      {mutation.isError && <p role="alert" className="text-sm text-red-700 mt-2">{mutation.error.message}</p>}
     </div>
   );
 }

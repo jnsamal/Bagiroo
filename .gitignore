@@ -4,6 +4,8 @@ node_modules/
 .local/
 dist/
 build/
+output/
+tmp/
 uploads/*
 !uploads/.gitkeep
 *.log

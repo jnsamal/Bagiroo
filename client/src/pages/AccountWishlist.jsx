@@ -25,26 +25,26 @@ export default function AccountWishlist() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-8">Wishlist</h1>
+      <h1 className="account-heading">Saved items</h1>
       {!data.items.length && <EmptyState message="Nothing saved yet." />}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
         {data.items.map((item) => {
           const image = item.product.media?.[0]?.url;
           return (
-            <div key={item.id}>
-              <Link to={`/product/${item.product.slug}`} className="block aspect-square">
+            <article key={item.id} className="flex flex-col">
+              <Link to={`/product/${item.product.slug}`} className="block aspect-[4/5] overflow-hidden bg-surface">
                 {image ? (
                   <img src={resolveMediaUrl(image)} alt={item.product.title} className="w-full h-full object-cover" />
                 ) : (
                   <PlaceholderImage label={item.product.title} className="w-full h-full" />
                 )}
               </Link>
-              <p className="text-sm mt-2">{item.product.title}</p>
-              <p className="text-sm">{formatPrice(item.product.priceMinor) ?? 'Price unavailable'}</p>
-              <button onClick={() => removeMutation.mutate(item.product.id)} className="text-xs text-muted underline mt-1">
-                Remove
+              <p className="text-sm font-medium mt-3 line-clamp-2">{item.product.title}</p>
+              <p className="text-sm mt-1">{formatPrice(item.product.priceMinor) ?? 'Price unavailable'}</p>
+              <button disabled={removeMutation.isPending} onClick={() => removeMutation.mutate(item.product.id)} className="mt-3 self-start text-xs text-muted underline underline-offset-4 disabled:opacity-50">
+                {removeMutation.isPending ? 'Removing…' : 'Remove'}
               </button>
-            </div>
+            </article>
           );
         })}
       </div>

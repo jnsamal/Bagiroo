@@ -25,15 +25,31 @@ const login = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { user: { id: user.id, loginId: user.loginId, name: user.name, role: user.role } } });
 });
 const requireAdminAuth = asyncHandler(async (req, res, next) => {
+  const adminToken = req.cookies?.bagiroo_admin_session;
+  const storefrontToken = req.cookies?.bagiroo_session;
   let payload;
-  try { payload = jwt.verify(req.cookies?.bagiroo_admin_session || '', env.jwtSecret); } catch { throw new ApiError(401, 'Please sign in to the admin portal.'); }
+  let sessionType;
+  if (adminToken) {
+    try { payload = jwt.verify(adminToken, env.jwtSecret); sessionType = 'password'; } catch { /* Fall back to the unified storefront session below. */ }
+  }
+  if (!payload && storefrontToken) {
+    try { payload = jwt.verify(storefrontToken, env.jwtSecret); sessionType = 'otp'; } catch { /* Handled by the authentication error below. */ }
+  }
+  if (!payload) throw new ApiError(401, 'Please sign in with an administrator account.');
   const user = await prisma.user.findUnique({ where: { id: payload.id } });
-  if (payload.method !== 'admin-password' || !user?.passwordHash || payload.version !== user.adminSessionVersion || !user.isActive || user.deletedAt || !['ADMIN', 'STAFF'].includes(user.role)) throw new ApiError(401, 'Admin session expired. Please sign in again.');
-  req.user = { id: user.id, role: user.role, loginId: user.loginId, name: user.name };
+  const validPasswordSession = sessionType === 'password' && payload.method === 'admin-password' && user?.passwordHash && payload.version === user.adminSessionVersion;
+  const validOtpSession = sessionType === 'otp' && payload.email === user?.email;
+  if (!user?.isActive || user.deletedAt || (!validPasswordSession && !validOtpSession)) throw new ApiError(401, 'Admin session expired. Please sign in again.');
+  if (!['ADMIN', 'STAFF'].includes(user.role)) throw new ApiError(403, 'Administrator access is required.');
+  req.user = { id: user.id, role: user.role, loginId: user.loginId, email: user.email, name: user.name };
   next();
 });
 const me = (req, res) => res.json({ success: true, data: { user: req.user } });
-const logout = (req, res) => { res.clearCookie('bagiroo_admin_session', sessionCookieClearOptions()); res.json({ success: true, data: { message: 'Signed out.' } }); };
+const logout = (req, res) => {
+  res.clearCookie('bagiroo_admin_session', sessionCookieClearOptions());
+  res.clearCookie('bagiroo_session', sessionCookieClearOptions());
+  res.json({ success: true, data: { message: 'Signed out.' } });
+};
 const changePassword = asyncHandler(async (req, res) => {
   const { currentPassword, password } = z.object({ currentPassword: z.string().min(1).max(72), password: z.string().min(12).max(72) }).parse(req.body);
   const user = await prisma.user.findUnique({ where: { id: req.user.id } });

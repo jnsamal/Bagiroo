@@ -9,7 +9,7 @@ import AccordionSection from '../components/product/AccordionSection';
 import StickyMobileCTA from '../components/product/StickyMobileCTA';
 import RelatedProducts from '../components/product/RelatedProducts';
 import RecentlyViewedProducts from '../components/product/RecentlyViewedProducts';
-import { useWebsite } from '../lib/useWebsite';
+import { usePublicSettings } from '../lib/useWebsite';
 import LoadingSkeleton from '../components/shared/LoadingSkeleton';
 import ErrorState from '../components/shared/ErrorState';
 import ProductReviews from '../components/product/ProductReviews';
@@ -20,22 +20,26 @@ import ProductReviews from '../components/product/ProductReviews';
 // Miraggio content (EMI/snapmint, pincode checker) carried over unless the
 // client asks for it specifically; flagged as an open question in the audit.
 export default function ProductDetail() {
-  const website = useWebsite();
+  const settings = usePublicSettings();
+  const website = settings?.website || {};
   const { slug } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedColour = searchParams.get('colour');
   const queryClient = useQueryClient();
   const [selectedVariation, setSelectedVariation] = useState(null);
   const [addStatus, setAddStatus] = useState('idle');
+  const [addError, setAddError] = useState('');
+  const [quantity, setQuantity] = useState(1);
 
   const { data: product, isLoading, isError, error } = useQuery({
     queryKey: ['product', slug],
     queryFn: () => api.get(`/products/${slug}`),
   });
+  const usesColorVariations = Boolean(product?.hasColorVariations && product?.variations?.length);
 
   useEffect(() => {
-    setSelectedVariation((current) => product?.variations?.find((v) => v.id === requestedColour) || product?.variations?.find((v) => v.id === current?.id) || product?.variations?.find((v) => v.isDefault) || product?.variations?.[0] || null);
-  }, [product, requestedColour]);
+    setSelectedVariation((current) => usesColorVariations ? product?.variations?.find((v) => v.id === requestedColour) || product?.variations?.find((v) => v.id === current?.id) || product?.variations?.find((v) => v.isDefault) || product?.variations?.[0] || null : null);
+  }, [product, requestedColour, usesColorVariations]);
 
   if (isLoading) return <LoadingSkeleton className="h-[60vh] m-6" />;
   if (isError) return <ErrorState message={error.message} />;
@@ -50,50 +54,50 @@ export default function ProductDetail() {
       : null;
 
   const categorySlug = product.categories?.[0]?.category?.slug;
-  const variation = product.variations?.find((v) => v.id === selectedVariation?.id) || product.variations?.find((v) => v.isDefault) || product.variations?.[0];
+  const variation = usesColorVariations ? product.variations?.find((v) => v.id === selectedVariation?.id) || product.variations?.find((v) => v.isDefault) || product.variations?.[0] : null;
   const colourImages = variation ? (product.media || []).filter((image) => image.variationId === variation.id) : (product.media || []);
   const defaultImage = colourImages.find(image => image.url === variation?.imageUrl);
   const galleryImages = defaultImage ? [defaultImage, ...colourImages.filter(image => image.id !== defaultImage.id)] : colourImages;
 
   async function handleAddToCart() {
     setAddStatus('loading');
+    setAddError('');
     try {
-      const data = await api.post('/cart/items', { productId: product.id, variationId: selectedVariation?.id, quantity: 1 });
+      const data = await api.post('/cart/items', { productId: product.id, variationId: selectedVariation?.id, quantity });
       queryClient.setQueryData(['cart'], data);
       setAddStatus('added');
     } catch (err) {
       setAddStatus('idle');
-      // eslint-disable-next-line no-alert
-      alert(err.message);
+      setAddError(err.message);
     }
   }
 
   return (
-    <div className="max-w-screen-2xl mx-auto px-6 py-10 pb-24 md:pb-10">
-      <p className="text-sm text-muted mb-6">
-        <Link to="/">Home</Link> / {product.title}
+    <div className="max-w-screen-2xl mx-auto px-5 sm:px-8 lg:px-12 py-10 pb-24 md:pb-16" data-scroll-reveal>
+      <p className="text-sm text-muted mb-8">
+        <Link to="/" className="hover:text-ink">Home</Link> <span aria-hidden="true">/</span> {categorySlug && <><Link to={`/shop/category/${categorySlug}`} className="hover:text-ink">Collection</Link> <span aria-hidden="true">/</span> </>}{product.title}
       </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 lg:gap-16">
         <ProductGallery key={`${product.id}-${variation?.id || 'simple'}-${galleryImages[0]?.id || 'empty'}`} images={galleryImages} title={`${product.title}${variation?.colorName ? ` — ${variation.colorName}` : ''}`} />
 
-        <div className="md:sticky md:top-6 self-start space-y-6">
+        <div className="md:sticky md:top-28 self-start space-y-7">
           <div>
-            <h1 className="text-2xl font-semibold">{product.title}</h1>
+            <h1 className="section-title">{product.title}</h1>
             <div className="mt-2 flex items-baseline gap-3">
               {price ? (
-                <span className="text-lg">{price}</span>
+                <span className="text-xl font-semibold">{price}</span>
               ) : (
                 <span className="text-lg text-muted">Price unavailable</span>
               )}
               {compareAt && <span className="text-muted line-through text-sm">{compareAt}</span>}
-              {discountPct && <span className="text-sm text-red-700">{discountPct}% OFF</span>}
+              {discountPct && <span className="bg-ink px-2 py-1 text-xs uppercase tracking-wider text-background">{discountPct}% off</span>}
             </div>
             <p className="text-xs text-muted mt-1">{website.taxIncluded !== false ? 'Inclusive of all taxes' : 'Taxes calculated at checkout'}</p>
             {product.shortDescription && <p className="text-sm text-muted mt-3">{product.shortDescription}</p>}
           </div>
 
-          {product.variations?.length > 0 && (
+          {usesColorVariations && (
             <ColourSelector
               variations={product.variations}
               selected={selectedVariation}
@@ -113,29 +117,29 @@ export default function ProductDetail() {
           )}
 
           <div className="hidden md:block">
+            <div className="mb-4 flex items-center gap-3"><span className="text-sm font-medium">Quantity</span><div className="inline-flex border border-border"><button type="button" aria-label="Decrease quantity" disabled={quantity === 1} onClick={() => setQuantity(value => Math.max(1, value - 1))} className="h-10 w-10 disabled:opacity-40">−</button><span className="flex h-10 min-w-10 items-center justify-center border-x border-border text-sm">{quantity}</span><button type="button" aria-label="Increase quantity" onClick={() => setQuantity(value => value + 1)} className="h-10 w-10">+</button></div></div>
             <button
               onClick={handleAddToCart}
               disabled={!price || addStatus === 'loading'}
-              className="w-full bg-ink text-background py-4 uppercase text-sm tracking-wide disabled:opacity-50"
+              className="store-button w-full border border-ink bg-ink text-background disabled:opacity-50"
             >
               {!price ? 'Read More' : addStatus === 'added' ? 'Added ✓' : addStatus === 'loading' ? 'Adding…' : 'Add to Cart'}
             </button>
+            <div aria-live="polite" className="min-h-6">{addStatus === 'added' && <p className="mt-2 text-sm">Added to your cart.</p>}{addError && <p role="alert" className="mt-2 text-sm text-red-700">{addError}</p>}</div>
+            <div className="mt-5 grid grid-cols-3 gap-2 border-t border-border pt-5 text-center text-xs text-muted"><span>Secure payment</span><span>Shipping details below</span><span>Order support</span></div>
           </div>
 
           <div>
-            <AccordionSection title="Why You'll Love It?" defaultOpen>
-              {product.description || "Content pending -- to be supplied by the client."}
-            </AccordionSection>
-            <AccordionSection title="Details &amp; Dimensions">
+            {product.description && <AccordionSection title="Why You'll Love It?" defaultOpen>
+              {product.description}
+            </AccordionSection>}
+            {(product.material || product.dimensions || product.weightGrams) && <AccordionSection title="Details &amp; Dimensions">
               {product.material && <p>Material: {product.material}</p>}
               {product.dimensions && <p>Dimensions: {product.dimensions}</p>}
               {product.weightGrams && <p>Weight: {product.weightGrams}g</p>}
-              {!product.material && !product.dimensions && !product.weightGrams && (
-                <p>Details pending -- to be supplied by the client.</p>
-              )}
-            </AccordionSection>
-            <AccordionSection title="Shipping &amp; Returns">
-              <div className="whitespace-pre-wrap">{website.shippingContent || 'Shipping and returns information will be available soon.'}</div>
+            </AccordionSection>}
+            <AccordionSection title={settings?.returnsEnabled === false ? 'Shipping' : 'Shipping & Returns'}>
+              <div className="whitespace-pre-wrap">{website.shippingContent || (settings?.returnsEnabled === false ? 'Shipping information will be available soon.' : 'Shipping and returns information will be available soon.')}</div>
             </AccordionSection>
             <AccordionSection title="More Information">
               SKU: {selectedVariation?.sku || product.sku}
@@ -148,7 +152,7 @@ export default function ProductDetail() {
       <ProductReviews slug={product.slug} reviews={product.reviews} />
       <RecentlyViewedProducts key={product.id} currentSlug={product.slug} />
 
-      <StickyMobileCTA price={price} onAddToCart={handleAddToCart} disabled={!price} />
+      <StickyMobileCTA price={price} quantity={quantity} onQuantityChange={setQuantity} onAddToCart={handleAddToCart} disabled={!price || addStatus === 'loading'} />
     </div>
   );
 }

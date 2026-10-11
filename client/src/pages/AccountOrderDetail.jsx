@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { formatPrice } from '../lib/money';
@@ -19,12 +19,13 @@ export default function AccountOrderDetail() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-2">Order #{data.orderNumber}</h1>
+      <Link to="/account/orders" className="mb-5 inline-block text-sm underline underline-offset-4">← Back to orders</Link>
+      <h1 className="account-heading !mb-2">Order #{data.orderNumber}</h1>
       <p className="text-sm uppercase text-muted mb-8">{data.status}</p>
 
       <div className="border border-border divide-y divide-border mb-8">
         {data.items.map((item) => (
-          <div key={item.id} className="flex justify-between p-4 text-sm">
+          <div key={item.id} className="flex justify-between gap-5 p-4 text-sm">
             <span>{item.titleSnapshot} × {item.quantity}</span>
             <span>{formatPrice(item.priceMinor * item.quantity)}</span>
           </div>
@@ -32,7 +33,7 @@ export default function AccountOrderDetail() {
       </div>
 
       {shipping && (
-        <div className="mb-8 text-sm">
+        <div className="mb-8 border border-border p-5 text-sm">
           <p className="font-medium mb-1">Shipping to</p>
           <p>{shipping.fullName}</p>
           <p>{shipping.line1}{shipping.line2 ? `, ${shipping.line2}` : ''}</p>
@@ -42,7 +43,7 @@ export default function AccountOrderDetail() {
 
       <div>
         <p className="font-medium mb-2 text-sm">Status history</p>
-        <ul className="text-sm text-muted space-y-1">
+        <ul className="border-l border-border pl-5 text-sm text-muted space-y-3">
           {data.statusHistory.map((h) => (
             <li key={h.id}>
               {new Date(h.createdAt).toLocaleString()} — {h.status}

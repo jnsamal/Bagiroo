@@ -6,6 +6,34 @@ const { baseCookieOptions, httpOnlyCookieOptions } = require('../config/cookieOp
 const GUEST_CART_COOKIE = 'bagiroo_guest_cart';
 const GUEST_COOKIE_OPTIONS = httpOnlyCookieOptions(90 * 24 * 60 * 60 * 1000);
 
+// Prisma compound unique selectors cannot accept null, even though
+// variationId is nullable for products without colour variations.
+async function incrementCartItem(db, { cartId, productId, variationId = null, quantity }) {
+  if (variationId) {
+    return db.cartItem.upsert({
+      where: { cartId_productId_variationId: { cartId, productId, variationId } },
+      update: { quantity: { increment: quantity } },
+      create: { cartId, productId, variationId, quantity },
+    });
+  }
+
+  const existing = await db.cartItem.findFirst({
+    where: { cartId, productId, variationId: null },
+    select: { id: true },
+  });
+
+  if (existing) {
+    return db.cartItem.update({
+      where: { id: existing.id },
+      data: { quantity: { increment: quantity } },
+    });
+  }
+
+  return db.cartItem.create({
+    data: { cartId, productId, variationId: null, quantity },
+  });
+}
+
 // Resolves (and creates if needed) the cart for the current request —
 // a real user's cart if logged in, otherwise a guest cart tracked by a
 // long-lived httpOnly cookie. This is the single place that decides
@@ -47,21 +75,11 @@ async function mergeGuestCartIntoUser(req, res, userId) {
   if (!userCart) userCart = await prisma.cart.create({ data: { userId } });
 
   for (const item of guestCart.items) {
-    await prisma.cartItem.upsert({
-      where: {
-        cartId_productId_variationId: {
-          cartId: userCart.id,
-          productId: item.productId,
-          variationId: item.variationId,
-        },
-      },
-      update: { quantity: { increment: item.quantity } },
-      create: {
-        cartId: userCart.id,
-        productId: item.productId,
-        variationId: item.variationId,
-        quantity: item.quantity,
-      },
+    await incrementCartItem(prisma, {
+      cartId: userCart.id,
+      productId: item.productId,
+      variationId: item.variationId,
+      quantity: item.quantity,
     });
   }
 
@@ -70,8 +88,11 @@ async function mergeGuestCartIntoUser(req, res, userId) {
 }
 
 async function addItem(cartId, { productId, variationId, quantity }) {
-  const product = await prisma.product.findUnique({ where: { id: productId } });
+  const product = await prisma.product.findUnique({ where: { id: productId }, include: { _count: { select: { variations: true } } } });
   if (!product || !product.isPublished) throw new ApiError(404, 'Product not found.');
+
+  if (!product.hasColorVariations && variationId) throw new ApiError(400, 'This product does not use colour variations.');
+  if (product.hasColorVariations && product._count.variations > 0 && !variationId) throw new ApiError(400, 'Choose a colour before adding this product.');
 
   if (variationId) {
     const variation = await prisma.productVariation.findUnique({ where: { id: variationId } });
@@ -80,11 +101,7 @@ async function addItem(cartId, { productId, variationId, quantity }) {
     }
   }
 
-  return prisma.cartItem.upsert({
-    where: { cartId_productId_variationId: { cartId, productId, variationId: variationId ?? null } },
-    update: { quantity: { increment: quantity } },
-    create: { cartId, productId, variationId, quantity },
-  });
+  return incrementCartItem(prisma, { cartId, productId, variationId, quantity });
 }
 
 async function updateItemQuantity(cartId, itemId, quantity) {

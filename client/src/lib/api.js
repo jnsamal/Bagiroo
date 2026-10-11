@@ -4,8 +4,18 @@
 
 const API_ORIGIN = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
 const API_BASE = `${API_ORIGIN}/api/v1`;
+export const apiUrl = (path) => `${API_BASE}${path}`;
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 let csrfTokenPromise;
+
+export class ApiRequestError extends Error {
+  constructor(message, status, path) {
+    super(message);
+    this.name = 'ApiRequestError';
+    this.status = status;
+    this.path = path;
+  }
+}
 
 async function getCsrfToken(force = false) {
   if (force) csrfTokenPromise = undefined;
@@ -46,7 +56,14 @@ async function request(path, options = {}) {
 
   if (!res.ok || !body?.success) {
     const message = body?.error?.message || `Request failed (${res.status})`;
-    throw new Error(message);
+    const error = new ApiRequestError(message, res.status, path);
+    if (res.status === 401 && path !== '/auth/me' && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bagiroo:session-expired', { detail: { path } }));
+    }
+    if (res.status === 403 && path.startsWith('/admin') && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bagiroo:admin-forbidden', { detail: { path } }));
+    }
+    throw error;
   }
 
   return body.data;

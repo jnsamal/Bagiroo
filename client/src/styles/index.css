@@ -28,6 +28,10 @@
   .brand-wordmark span { @apply ml-1 text-xs sm:text-sm font-normal; letter-spacing: -.02em; }
   .header-action { @apply flex items-center justify-center w-10 h-10; }
   .announcement-slide { animation: announcement-slide-in .35s ease both; }
+  .hero-slide-enter-right { animation: hero-slide-enter-right 1.1s cubic-bezier(.22,.61,.36,1) both; }
+  .hero-slide-enter-left { animation: hero-slide-enter-left 1.1s cubic-bezier(.22,.61,.36,1) both; }
+  .hero-slide-exit-left { animation: hero-slide-exit-left 1.1s cubic-bezier(.22,.61,.36,1) both; }
+  .hero-slide-exit-right { animation: hero-slide-exit-right 1.1s cubic-bezier(.22,.61,.36,1) both; }
   .testimonial-slide.from-right { animation: testimonial-slide-from-right .45s cubic-bezier(.22,.61,.36,1) both; }
   .testimonial-slide.from-left { animation: testimonial-slide-from-left .45s cubic-bezier(.22,.61,.36,1) both; }
   .footer-brand-heading { font-family: 'Metro Gate', Arial, sans-serif; }
@@ -39,6 +43,15 @@
   .admin-panel { @apply bg-white border border-border p-5 sm:p-6; }
   .admin-primary { @apply inline-flex items-center justify-center bg-ink text-background px-5 py-3 text-sm disabled:opacity-50; }
   .admin-shell table { display: block; overflow-x: auto; }
+  .admin-shell input:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='file']), .admin-shell select, .admin-shell textarea { @apply border-border bg-white transition-colors; }
+  .admin-shell input:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='file']):hover, .admin-shell select:hover, .admin-shell textarea:hover { @apply border-muted; }
+  .admin-shell input:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='file']):focus, .admin-shell select:focus, .admin-shell textarea:focus { @apply border-ink; outline: none; }
+  .admin-shell :is(a, button, input, select, textarea):focus-visible { outline: 2px solid #fff; outline-offset: 2px; box-shadow: 0 0 0 4px #171716; }
+  .admin-shell input:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='file']), .admin-shell select { min-height: 44px; }
+  .admin-shell input[type='checkbox'], .admin-shell input[type='radio'] { width: 1rem; height: 1rem; accent-color: #171716; }
+  .admin-shell button:disabled, .admin-shell input:disabled, .admin-shell select:disabled { cursor: not-allowed; }
+  .admin-shell th { @apply font-semibold; }
+  .admin-shell textarea { resize: vertical; }
   .hamburger-icon { position: relative; display: block; width: 22px; height: 18px; }
   .hamburger-icon span { position: absolute; left: 0; top: 8px; width: 22px; height: 1.5px; background: currentColor; transition: transform .22s ease, opacity .18s ease; }
   .hamburger-icon span:first-child { transform: translateY(-6px); }
@@ -57,7 +70,7 @@
   .store-section { @apply max-w-screen-2xl mx-auto px-5 sm:px-8 lg:px-12 py-12 md:py-20; }
   .section-title { @apply text-2xl sm:text-3xl md:text-4xl font-semibold; letter-spacing: -.04em; line-height: 1.15; }
   .store-button { @apply inline-flex items-center justify-center min-h-12 px-6 text-xs uppercase tracking-widest; transition: background-color .2s, color .2s, border-color .2s; }
-  .store-button:hover { @apply bg-surface text-ink; }
+  .store-button:hover, .store-button:focus-visible { @apply bg-background text-ink border-ink; }
   .hero-collection-button { transition: background-color .25s ease .1s, color .25s ease .1s; }
   .hero-collection-button:hover, .hero-collection-button:focus-visible { @apply bg-ink text-background; }
   .product-card img { transition: transform .4s ease; }
@@ -70,11 +83,38 @@
   .mega-sublink:hover, .mega-sublink:focus-visible { @apply bg-surface; }
   .mega-link-label { background-image: linear-gradient(currentColor, currentColor); background-position: left bottom; background-repeat: no-repeat; background-size: 0% 1px; padding-bottom: 4px; transition: background-size .3s ease; }
   .mega-sublink:hover .mega-link-label, .mega-sublink:focus-visible .mega-link-label { background-size: 100% 1px; }
+  .form-field { @apply min-h-12 w-full border border-border bg-background px-4 text-sm transition-colors; }
+  .form-field:hover { @apply border-muted; }
+  .form-field:focus { @apply border-ink; outline: none; }
+  .account-heading { @apply mb-8 text-2xl font-semibold md:text-3xl; letter-spacing: -.03em; }
+  .admin-page-title { @apply text-2xl font-semibold md:text-3xl; letter-spacing: -.03em; }
+  .scroll-reveal { opacity: 0; transform: translateY(16px); transition: opacity .55s ease, transform .55s cubic-bezier(.22,.61,.36,1); }
+  .scroll-reveal.is-visible { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes announcement-slide-in {
   from { opacity: 0; transform: translateX(14px); }
   to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes hero-slide-enter-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes hero-slide-enter-left {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes hero-slide-exit-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+
+@keyframes hero-slide-exit-right {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
 }
 
 @keyframes testimonial-slide-from-right {
@@ -98,4 +138,5 @@
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition-duration: 0s !important; transition-delay: 0s !important; animation-duration: 0s !important; }
+  .scroll-reveal { opacity: 1; transform: none; }
 }

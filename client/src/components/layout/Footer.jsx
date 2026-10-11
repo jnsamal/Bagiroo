@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useWebsite } from '../../lib/useWebsite';
+import { usePublicSettings } from '../../lib/useWebsite';
 import { safeUrl } from '../../lib/safeUrl';
 
 // Column structure and copy confirmed from the live site audit.
@@ -28,8 +28,8 @@ function StoreLink({ to, children }) {
     : <Link to={destination}>{children}</Link>;
 }
 
-function FooterLinkList({ links = [] }) {
-  return <ul className="space-y-2 text-background/80">{links.filter(link => link.visible !== false).map(link => (
+function FooterLinkList({ links = [], returnsEnabled = true }) {
+  return <ul className="space-y-2 text-background/80">{links.filter(link => link.visible !== false && (returnsEnabled || link.to !== '/refund-policy')).map(link => (
     <li key={link.key}><StoreLink to={link.to}>{link.label}</StoreLink></li>
   ))}</ul>;
 }
@@ -37,12 +37,14 @@ function FooterLinkList({ links = [] }) {
 // Only renders social links that are actually configured (non-empty URL),
 // per the spec — no placeholder "#" links for unconfigured platforms.
 export default function Footer({ socialLinks = [] }) {
-  const website = useWebsite();
+  const settings = usePublicSettings();
+  const website = settings?.website || {};
+  const returnsEnabled = settings?.returnsEnabled !== false;
   return (
     <footer className="store-footer bg-ink text-background">
       <div className="max-w-screen-2xl mx-auto px-5 sm:px-8 lg:px-12 py-12 md:py-16">
         <div className="flex flex-wrap gap-5 items-center justify-between border-b border-white/10 pb-6 mb-10">
-          <span className="font-medium">{website.footerFollowLabel || 'Follow Bagiroo&Co.'}</span>
+          <span className="font-medium">{website.footerFollowLabel || 'Follow Bagiroo & Co.'}</span>
           <div className="flex flex-wrap gap-3">
             {socialLinks.map((link) => safeUrl(link.url, { allowRelative: false }) && (
               <a key={link.id} href={safeUrl(link.url, { allowRelative: false })} target="_blank" rel="noopener noreferrer" className="social-icon-link w-10 h-10 border border-white/30 rounded-full inline-flex items-center justify-center transition-colors hover:bg-background hover:text-ink" aria-label={PLATFORM_LABELS[link.platform] || link.platform} title={PLATFORM_LABELS[link.platform] || link.platform}>
@@ -59,11 +61,11 @@ export default function Footer({ socialLinks = [] }) {
           </div>
           <div>
             <p className="font-medium mb-3">{website.footerShopTitle || 'Shop'}</p>
-            <FooterLinkList links={website.footerShopLinks} />
+            <FooterLinkList links={website.footerShopLinks} returnsEnabled={returnsEnabled} />
           </div>
           <div>
             <p className="font-medium mb-3">{website.footerHelpTitle || 'Help'}</p>
-            <FooterLinkList links={website.footerHelpLinks} />
+            <FooterLinkList links={website.footerHelpLinks} returnsEnabled={returnsEnabled} />
           </div>
           <div>
             <p className="font-medium mb-3">{website.footerCareTitle || 'Customer Care'}</p>
@@ -74,9 +76,10 @@ export default function Footer({ socialLinks = [] }) {
           </div>
         </div>
 
-        <p className="text-xs text-background/50 mt-10">
-          © {new Date().getFullYear()} {website.siteName || 'Bagiroo & Co.'} All rights reserved.
-        </p>
+        <div className="mt-10 border-t border-white/10 pt-5 text-xs text-background/50 sm:flex sm:items-center sm:justify-between sm:gap-6">
+          <p>© {new Date().getFullYear()} {website.siteName || 'Bagiroo & Co.'} All rights reserved.</p>
+          <p className="mt-2 sm:mt-0">Developed by Qubnix Technologies Pvt. Ltd</p>
+        </div>
       </div>
     </footer>
   );

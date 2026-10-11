@@ -4,7 +4,8 @@ import { useWebsite } from '../../lib/useWebsite';
 export default function OrderSummary({ cart }) {
   const website = useWebsite();
   return (
-    <div className="border border-border p-6 text-sm space-y-2">
+    <div className="border border-border bg-background p-6 text-sm space-y-3">
+      <h2 className="mb-5 text-lg font-semibold">Order summary</h2>
       <div className="flex justify-between">
         <span>Subtotal</span>
         <span>{formatPrice(cart.subtotalMinor)}</span>
@@ -25,7 +26,7 @@ export default function OrderSummary({ cart }) {
           <span>{formatPrice(cart.taxMinor)}</span>
         </div>
       )}
-      <div className="flex justify-between font-medium pt-2 border-t border-border">
+      <div className="flex justify-between text-base font-semibold pt-4 mt-4 border-t border-border">
         <span>Total</span>
         <span>{formatPrice(cart.totalMinor)}</span>
       </div>

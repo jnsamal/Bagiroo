@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const prisma = require('../config/prismaClient');
-const smsProvider = require('./sms.provider');
+const emailProvider = require('./email.provider');
 const env = require('../config/env');
 const { ApiError } = require('../middleware/errorHandler');
 
@@ -12,21 +12,21 @@ function generateNumericCode(length) {
   return code;
 }
 
-async function requestOtp(phone, purpose) {
+async function requestOtp(email, purpose) {
   const code = generateNumericCode(env.otpLength);
   const codeHash = await bcrypt.hash(code, 10);
   const expiresAt = new Date(Date.now() + env.otpExpiresInMinutes * 60 * 1000);
 
   await prisma.otpToken.create({
-    data: { phone, codeHash, purpose, expiresAt },
+    data: { email, codeHash, purpose, expiresAt },
   });
 
-  await smsProvider.sendOtp(phone, code);
+  await emailProvider.sendOtp(email, code);
 }
 
-async function verifyOtp(phone, code, purpose) {
+async function verifyOtp(email, code, purpose) {
   const token = await prisma.otpToken.findFirst({
-    where: { phone, purpose, consumedAt: null },
+    where: { email, purpose, consumedAt: null },
     orderBy: { createdAt: 'desc' },
   });
 

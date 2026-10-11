@@ -3,6 +3,7 @@ const prisma = require('../../config/prismaClient');
 const asyncHandler = require('../../middleware/asyncHandler');
 const { ApiError } = require('../../middleware/errorHandler');
 const website = require('../../services/website.service');
+const { deleteStoredMedia } = require('../../services/media.service');
 const text = z.string().max(20000);
 const url = z.string().max(2000).refine(value => !value || /^\/(?!\/)[^\\\s]*$/.test(value) || /^https?:\/\/[^\s]+$/i.test(value), 'Use a /path or http(s) URL.');
 const number = z.number().int();
@@ -20,6 +21,11 @@ const definitions = {
   contacts: { model: 'contactMessage', title: 'Contact messages', editOnly: true, orderBy: { createdAt: 'desc' }, fields: [['status','Status','select',null,null,['NEW','IN_PROGRESS','RESOLVED']]], schema: z.object({ status: z.enum(['NEW','IN_PROGRESS','RESOLVED']) }) },
 };
 function definition(req) { const value = definitions[req.params.resource]; if (!value) throw new ApiError(404, 'Content section not found.'); return value; }
+function mediaFields(def) { return def.fields.filter(([, , type]) => type === 'image' || type === 'video').map(([key]) => key); }
+async function cleanupMedia(urls) {
+  const results = await Promise.allSettled([...new Set(urls.filter(Boolean))].map(deleteStoredMedia));
+  results.filter(result => result.status === 'rejected').forEach(result => console.error('[media] Cloudinary cleanup failed:', result.reason?.message));
+}
 const getWebsite = asyncHandler(async (req, res) => {
   res.set('Cache-Control', 'no-store');
   res.json({ success: true, data: { fields: website.fields, values: await website.getWebsite() } });
@@ -27,15 +33,24 @@ const getWebsite = asyncHandler(async (req, res) => {
 const saveWebsite = asyncHandler(async (req, res) => res.json({ success: true, data: await website.saveWebsite(req.body) }));
 const list = asyncHandler(async (req, res) => {
   const def = definition(req);
-  const [items, products] = await Promise.all([prisma[def.model].findMany({ include: def.include, orderBy: def.orderBy }), prisma.product.findMany({ where: { deletedAt: null }, select: { id: true, title: true }, orderBy: { title: 'asc' } })]);
+  const needsProducts = def.fields.some(([, , type]) => type === 'product' || type === 'products');
+  const [items, products] = await Promise.all([
+    prisma[def.model].findMany({ include: def.include, orderBy: def.orderBy }),
+    needsProducts
+      ? prisma.product.findMany({ where: { deletedAt: null }, select: { id: true, title: true }, orderBy: { title: 'asc' } })
+      : Promise.resolve([]),
+  ]);
   res.json({ success: true, data: { title: def.title, fields: def.fields, editOnly: !!def.editOnly, products, items: items.map(item => ({ ...item, ...(item.products ? { productIds: item.products.map(entry => entry.productId) } : {}) })) } });
 });
 const save = asyncHandler(async (req, res) => {
   const def = definition(req);
   if (def.editOnly && !req.params.id) throw new ApiError(400, 'Select an existing stock record.');
   const { productIds, ...data } = def.schema.parse(req.body);
+  const replacedMedia = [];
   const record = await prisma.$transaction(async tx => {
-    if (req.params.id && !await tx[def.model].findUnique({ where: { id: req.params.id } })) throw new ApiError(404, 'Record not found.');
+    const existing = req.params.id ? await tx[def.model].findUnique({ where: { id: req.params.id } }) : null;
+    if (req.params.id && !existing) throw new ApiError(404, 'Record not found.');
+    if (existing) mediaFields(def).forEach(key => { if (existing[key] && existing[key] !== data[key]) replacedMedia.push(existing[key]); });
     if (def.model === 'inventory') {
       const result = await tx.inventory.updateMany({ where: { id: req.params.id, quantityReserved: { lte: data.quantityAvailable } }, data });
       if (!result.count) throw new ApiError(409, 'On-hand quantity cannot be below reserved stock.');
@@ -46,17 +61,23 @@ const save = asyncHandler(async (req, res) => {
     if (def.model === 'testimonial') data.isPlaceholder = false;
     return req.params.id ? tx[def.model].update({ where: { id: req.params.id }, data }) : tx[def.model].create({ data });
   });
+  await cleanupMedia(replacedMedia);
   res.json({ success: true, data: record });
 });
 const remove = asyncHandler(async (req, res) => {
   const def = definition(req);
   if (def.editOnly) throw new ApiError(400, 'Inventory records cannot be deleted here.');
+  const removedMedia = [];
   await prisma.$transaction(async tx => {
+    const existing = await tx[def.model].findUnique({ where: { id: req.params.id } });
+    if (!existing) throw new ApiError(404, 'Record not found.');
+    mediaFields(def).forEach(key => { if (existing[key]) removedMedia.push(existing[key]); });
     if (def.model === 'category') await tx.productCategory.deleteMany({ where: { categoryId: req.params.id } });
     if (def.model === 'collection') await tx.productCollection.deleteMany({ where: { collectionId: req.params.id } });
     if (def.model === 'coupon') await tx.couponUsage.deleteMany({ where: { couponId: req.params.id } });
     await tx[def.model].delete({ where: { id: req.params.id } });
   });
+  await cleanupMedia(removedMedia);
   res.json({ success: true, data: { message: 'Removed.' } });
 });
 module.exports = { getWebsite, saveWebsite, list, save, remove };

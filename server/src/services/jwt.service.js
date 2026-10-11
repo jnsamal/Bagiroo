@@ -4,7 +4,7 @@ const { httpOnlyCookieOptions } = require('../config/cookieOptions');
 
 function signSession(user) {
   return jwt.sign(
-    { id: user.id, phone: user.phone, role: user.role },
+    { id: user.id, email: user.email, role: user.role },
     env.jwtSecret,
     { expiresIn: env.jwtExpiresIn }
   );

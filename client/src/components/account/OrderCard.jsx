@@ -36,7 +36,7 @@ export default function OrderCard({ order, customerName }) {
   }
 
   return (
-    <div className="border border-border p-6">
+    <article className="border border-border p-5 sm:p-6">
       <div className="flex items-start justify-between mb-4">
         <div>
           <p className="font-medium">Order #{order.orderNumber}</p>
@@ -48,7 +48,7 @@ export default function OrderCard({ order, customerName }) {
         <button
           onClick={handleDownloadInvoice}
           disabled={invoiceState === 'loading'}
-          className="text-xs border border-border px-3 py-2 uppercase tracking-wide whitespace-nowrap"
+          className="border border-border px-3 py-2 text-xs uppercase tracking-wide whitespace-nowrap transition-colors hover:border-ink hover:bg-ink hover:text-background disabled:opacity-50"
         >
           {invoiceState === 'loading' ? 'Preparing…' : 'Download invoice'}
         </button>
@@ -75,12 +75,12 @@ export default function OrderCard({ order, customerName }) {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {order.items.map((item) => {
           const image = item.product?.media?.[0]?.url;
           return (
             <div key={item.id} className="flex gap-3">
-              <div className="w-14 h-14 shrink-0">
+              <div className="w-16 h-20 shrink-0 bg-surface">
                 {image ? (
                   <img src={resolveMediaUrl(image)} alt="" className="w-full h-full object-cover" />
                 ) : (
@@ -97,6 +97,6 @@ export default function OrderCard({ order, customerName }) {
         })}
       </div>
       {invoiceState === 'error' && <p role="alert" className="text-xs text-red-700 mt-4">Invoice download failed. Please try again.</p>}
-    </div>
+    </article>
   );
 }
